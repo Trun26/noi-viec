@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
 import '../nghiep_vu/ung_dung.dart';
 
 String tien(dynamic n) => NumberFormat.currency(
@@ -11,9 +12,8 @@ String ngay(dynamic s) {
   final d = DateTime.tryParse(s?.toString() ?? '');
   return d == null
       ? ''
-      : DateFormat(
-          'dd/MM/yyyy HH:mm',
-        ).format(d.toUtc().add(const Duration(hours: 7)));
+      : DateFormat('dd/MM/yyyy HH:mm')
+            .format(d.toUtc().add(const Duration(hours: 7)));
 }
 
 const nhan = {
@@ -351,9 +351,8 @@ class TheNoiDung extends StatelessWidget {
                 Expanded(
                   child: Text(
                     tieuDe,
-                    style: Theme.of(c).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: Theme.of(c).textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w700),
                   ),
                 ),
                 if (trangThai != null)
@@ -373,6 +372,489 @@ class TheNoiDung extends StatelessWidget {
             ],
           ],
         ),
+      ),
+    ),
+  );
+}
+
+class TheGoiDangTin extends StatelessWidget {
+  final String tieuDe, moTa, gia;
+  final int soLuot;
+  final Widget? anh;
+  final bool dangBan;
+  final List<Widget> hanhDong;
+  final VoidCallback? mo;
+  const TheGoiDangTin({
+    super.key,
+    required this.tieuDe,
+    required this.moTa,
+    required this.gia,
+    required this.soLuot,
+    this.anh,
+    this.dangBan = true,
+    this.hanhDong = const [],
+    this.mo,
+  });
+
+  @override
+  Widget build(BuildContext c) => Card(
+    clipBehavior: Clip.antiAlias,
+    child: InkWell(
+      onTap: mo,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (anh != null) ...[anh!, const SizedBox(width: 14)],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        tieuDe,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(c).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        moTa.isEmpty ? 'Gói lượt đăng tin' : moTa,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xff647084),
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(
+                  dangBan ? Icons.check_circle : Icons.pause_circle_outline,
+                  color: dangBan ? const Color(0xff21845a) : Colors.blueGrey,
+                  size: 20,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xfff4f1ff),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.bolt_rounded, color: Color(0xff6250d8)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '$soLuot lượt đăng tin',
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  Text(
+                    gia,
+                    style: const TextStyle(
+                      color: Color(0xff4338ca),
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (hanhDong.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Wrap(spacing: 8, runSpacing: 4, children: hanhDong),
+            ],
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+class TheDongGioHang extends StatelessWidget {
+  final String tieuDe, chiTiet;
+  final Widget? anh;
+  final bool doiGia;
+  final List<Widget> hanhDong;
+  const TheDongGioHang({
+    super.key,
+    required this.tieuDe,
+    required this.chiTiet,
+    required this.hanhDong,
+    this.anh,
+    this.doiGia = false,
+  });
+
+  @override
+  Widget build(BuildContext c) => Card(
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              if (anh != null) ...[anh!, const SizedBox(width: 12)],
+              Expanded(
+                child: Text(
+                  tieuDe,
+                  style: Theme.of(c).textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w800),
+                ),
+              ),
+              const Icon(Icons.shopping_bag_outlined, color: Color(0xff6250d8)),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(chiTiet, style: const TextStyle(height: 1.5)),
+          if (doiGia) ...[
+            const SizedBox(height: 10),
+            const Row(
+              children: [
+                Icon(Icons.info_outline, color: Color(0xffa15c00), size: 18),
+                SizedBox(width: 7),
+                Expanded(
+                  child: Text(
+                    'Giá đã thay đổi. Cập nhật và xác nhận giá mới trước khi đặt.',
+                    style: TextStyle(color: Color(0xff8a4b00)),
+                  ),
+                ),
+              ],
+            ),
+          ],
+          if (hanhDong.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(spacing: 8, runSpacing: 4, children: hanhDong),
+          ],
+        ],
+      ),
+    ),
+  );
+}
+
+class TheDonMuaLuot extends StatelessWidget {
+  final String ma, taoLuc, trangThai, tongTien;
+  final int tongLuot;
+  final VoidCallback mo;
+  final List<Widget> hanhDong;
+  const TheDonMuaLuot({
+    super.key,
+    required this.ma,
+    required this.taoLuc,
+    required this.trangThai,
+    required this.tongTien,
+    required this.tongLuot,
+    required this.mo,
+    this.hanhDong = const [],
+  });
+
+  @override
+  Widget build(BuildContext c) => Card(
+    child: InkWell(
+      onTap: mo,
+      borderRadius: BorderRadius.circular(18),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const CircleAvatar(
+                  backgroundColor: Color(0xffeeeaff),
+                  child: Icon(Icons.receipt_long, color: Color(0xff6250d8)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    ma,
+                    style: Theme.of(c).textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w800),
+                  ),
+                ),
+                NhanTrangThai(trangThai),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Tổng thanh toán',
+                        style: TextStyle(color: Color(0xff687385)),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        tongTien,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xfff4f1ff),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '$tongLuot lượt',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(taoLuc, style: const TextStyle(color: Color(0xff687385))),
+            if (hanhDong.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Wrap(spacing: 8, runSpacing: 4, children: hanhDong),
+            ],
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+class TheHoSoUngTuyen extends StatelessWidget {
+  final String tieuDe, ngayNop, trangThai;
+  final String? thuGioiThieu;
+  final List<Widget> hanhDong;
+  final VoidCallback? mo;
+  const TheHoSoUngTuyen({
+    super.key,
+    required this.tieuDe,
+    required this.ngayNop,
+    required this.trangThai,
+    required this.hanhDong,
+    this.thuGioiThieu,
+    this.mo,
+  });
+
+  @override
+  Widget build(BuildContext c) => Card(
+    child: InkWell(
+      onTap: mo,
+      borderRadius: BorderRadius.circular(18),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const CircleAvatar(
+                  backgroundColor: Color(0xffedf4ff),
+                  child: Icon(
+                    Icons.assignment_ind_outlined,
+                    color: Color(0xff385f9f),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        tieuDe,
+                        style: Theme.of(c).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        'Nộp ngày $ngayNop',
+                        style: const TextStyle(color: Color(0xff687385)),
+                      ),
+                    ],
+                  ),
+                ),
+                NhanTrangThai(trangThai),
+              ],
+            ),
+            if (thuGioiThieu?.isNotEmpty == true) ...[
+              const SizedBox(height: 12),
+              Text(
+                thuGioiThieu!,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(height: 1.5),
+              ),
+            ],
+            if (hanhDong.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Wrap(spacing: 8, runSpacing: 4, children: hanhDong),
+            ],
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+class TheCvCaNhan extends StatelessWidget {
+  final String ten, ngayTai;
+  final List<Widget> hanhDong;
+  const TheCvCaNhan({
+    super.key,
+    required this.ten,
+    required this.ngayTai,
+    required this.hanhDong,
+  });
+
+  @override
+  Widget build(BuildContext c) => Card(
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 48,
+                height: 54,
+                decoration: BoxDecoration(
+                  color: const Color(0xffffefef),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.picture_as_pdf_outlined,
+                  color: Color(0xffbd4141),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      ten,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(c).textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'PDF • Tải lên $ngayTai',
+                      style: const TextStyle(color: Color(0xff687385)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (hanhDong.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(spacing: 8, runSpacing: 4, children: hanhDong),
+          ],
+        ],
+      ),
+    ),
+  );
+}
+
+class TacVuQuanTri {
+  final String ten;
+  final IconData bieuTuong;
+  final VoidCallback bam;
+  const TacVuQuanTri(this.ten, this.bieuTuong, this.bam);
+}
+
+class NhomTacVuQuanTri extends StatelessWidget {
+  final String tieuDe, moTa;
+  final List<TacVuQuanTri> tacVu;
+  const NhomTacVuQuanTri({
+    super.key,
+    required this.tieuDe,
+    required this.moTa,
+    required this.tacVu,
+  });
+
+  @override
+  Widget build(BuildContext c) => Card(
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            tieuDe,
+            style: Theme.of(c).textTheme.titleMedium
+                ?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 4),
+          Text(moTa, style: const TextStyle(color: Color(0xff687385))),
+          const SizedBox(height: 14),
+          LayoutBuilder(
+            builder: (c, box) {
+              final rong = (box.maxWidth - 10) / 2;
+              return Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  for (final muc in tacVu)
+                    SizedBox(
+                      width: rong,
+                      child: InkWell(
+                        onTap: muc.bam,
+                        borderRadius: BorderRadius.circular(14),
+                        child: Container(
+                          constraints: const BoxConstraints(minHeight: 82),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xfff7f5ff),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: const Color(0xffebe7f8)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Icon(
+                                muc.bieuTuong,
+                                color: const Color(0xff6250d8),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                muc.ten,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+        ],
       ),
     ),
   );

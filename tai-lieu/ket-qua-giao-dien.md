@@ -6,7 +6,7 @@
 - Gói mới nhất có phân trang và mở đúng chi tiết; đổi nhãn Giỏ hàng, Đơn hàng, Gói đăng tin.
 - Dart analyze: không có vấn đề.
 - Đã bổ sung kiểm thử bố cục 360x800 và điều hướng đến màn đăng nhập.
-- Flutter test trong phiên công cụ bị chặn socket localhost (10057), chưa xác nhận các kiểm thử giao diện mới đạt. Cần chạy tai-lieu/kiem-tra.ps1 trong terminal bình thường để kiểm thử và tạo APK mới.
-- APK cũ trong outputs chưa chứa giao diện mới. Chưa xác nhận trực quan bản mới trên Android.
+- Khi chạy widget test 360×800, phát hiện thẻ trang chủ tràn ngang 75 px ở nút “Khám phá việc làm”; đã sửa bằng `Flexible`, tối đa hai dòng và ellipsis.
+- Chưa xác minh lại test sau sửa. Pixel 7 đã boot, nhưng app chưa cài; API/SQL cũng chưa hoạt động. Flutter CLI hiện bị chặn khi khởi chạy tiến trình con và không ghi được SDK lockfile, nên APK mới chưa tạo.
 
 Cập nhật tiếp: chi tiết việc làm có bố cục riêng và thanh ứng tuyển; bộ lọc chỉ xuất hiện một lần trên thanh công cụ, kể cả khi danh sách rỗng; tài khoản ứng viên có CV, việc đã lưu và theo dõi ứng tuyển. Bổ sung kiểm thử nút ứng tuyển cho khách và tin hết hạn, chưa thực thi được trong sandbox.

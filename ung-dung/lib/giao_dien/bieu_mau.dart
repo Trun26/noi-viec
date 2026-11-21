@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+
 import '../nghiep_vu/ung_dung.dart';
 import 'thanh_phan.dart';
 
@@ -27,6 +28,7 @@ Future<Map<String, dynamic>?> moBieuMau(
   String? khoaNhap,
   bool anh = false,
   bool cv = false,
+  bool hoSoCaNhan = false,
   Future<void> Function(Map<String, dynamic>)? luu,
 }) => Navigator.push<Map<String, dynamic>>(
   c,
@@ -39,6 +41,7 @@ Future<Map<String, dynamic>?> moBieuMau(
       khoaNhap: khoaNhap,
       anh: anh,
       cv: cv,
+      hoSoCaNhan: hoSoCaNhan,
       luu: luu,
     ),
   ),
@@ -50,7 +53,7 @@ class ManBieuMau extends StatefulWidget {
   final List<TruongNhap> truong;
   final Map<String, dynamic> giaTri;
   final String? khoaNhap;
-  final bool anh, cv;
+  final bool anh, cv, hoSoCaNhan;
   final Future<void> Function(Map<String, dynamic>)? luu;
   const ManBieuMau({
     super.key,
@@ -61,6 +64,7 @@ class ManBieuMau extends StatefulWidget {
     this.khoaNhap,
     this.anh = false,
     this.cv = false,
+    this.hoSoCaNhan = false,
     this.luu,
   });
   @override
@@ -158,57 +162,117 @@ class _ManBieuMauState extends State<ManBieuMau> {
       child: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          for (final t in widget.truong)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 18),
-              child: t.chon != null
-                  ? DropdownButtonFormField<String>(
-                      initialValue: t.chon!.containsKey(nhap[t.khoa]!.text)
-                          ? nhap[t.khoa]!.text
-                          : null,
-                      isExpanded: true,
-                      decoration: InputDecoration(labelText: t.nhan),
-                      items: t.chon!.entries
-                          .map(
-                            (e) => DropdownMenuItem(
-                              value: e.key,
-                              child: Text(
-                                e.value,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: gui
-                          ? null
-                          : (s) => nhap[t.khoa]!.text = s ?? '',
-                      validator: (v) => t.batBuoc && (v == null || v.isEmpty)
-                          ? 'Vui lòng chọn ${t.nhan.toLowerCase()}'
-                          : null,
-                    )
-                  : TextFormField(
-                      controller: nhap[t.khoa],
-                      enabled: !gui,
-                      obscureText: t.an,
-                      maxLines: t.nhieuDong ? 5 : 1,
-                      keyboardType: t.so
-                          ? const TextInputType.numberWithOptions(decimal: true)
-                          : TextInputType.text,
-                      decoration: InputDecoration(labelText: t.nhan),
-                      validator: (v) {
-                        if (t.batBuoc && (v == null || v.trim().isEmpty)) {
-                          return 'Vui lòng nhập ${t.nhan.toLowerCase()}';
-                        }
-                        if (t.so &&
-                            v != null &&
-                            v.isNotEmpty &&
-                            num.tryParse(v.replaceAll(',', '.')) == null) {
-                          return 'Nhập số hợp lệ';
-                        }
-                        return null;
-                      },
+          if (widget.hoSoCaNhan)
+            Card(
+              color: const Color(0xfff2efff),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    const CircleAvatar(
+                      backgroundColor: Colors.white,
+                      child: Icon(
+                        Icons.badge_outlined,
+                        color: Color(0xff6250d8),
+                      ),
                     ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Hồ sơ ứng viên',
+                            style: TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'Thông tin này giúp nhà tuyển dụng hiểu rõ kinh nghiệm và định hướng của bạn.',
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
+          if (widget.hoSoCaNhan) ...[
+            const SizedBox(height: 14),
+            const Text(
+              'THÔNG TIN LIÊN HỆ',
+              style: TextStyle(
+                color: Color(0xff6250d8),
+                fontWeight: FontWeight.w800,
+                letterSpacing: .5,
+              ),
+            ),
+          ],
+          for (var i = 0; i < widget.truong.length; i++) ...[
+            if (widget.hoSoCaNhan && i == 2) ...[
+              const SizedBox(height: 6),
+              const Text(
+                'NĂNG LỰC VÀ ĐỊNH HƯỚNG',
+                style: TextStyle(
+                  color: Color(0xff6250d8),
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: .5,
+                ),
+              ),
+            ],
+            for (final t in [widget.truong[i]])
+              Padding(
+                padding: const EdgeInsets.only(bottom: 18),
+                child: t.chon != null
+                    ? DropdownButtonFormField<String>(
+                        initialValue: t.chon!.containsKey(nhap[t.khoa]!.text)
+                            ? nhap[t.khoa]!.text
+                            : null,
+                        isExpanded: true,
+                        decoration: InputDecoration(labelText: t.nhan),
+                        items: t.chon!.entries
+                            .map(
+                              (e) => DropdownMenuItem(
+                                value: e.key,
+                                child: Text(
+                                  e.value,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: gui
+                            ? null
+                            : (s) => nhap[t.khoa]!.text = s ?? '',
+                        validator: (v) => t.batBuoc && (v == null || v.isEmpty)
+                            ? 'Vui lòng chọn ${t.nhan.toLowerCase()}'
+                            : null,
+                      )
+                    : TextFormField(
+                        controller: nhap[t.khoa],
+                        enabled: !gui,
+                        obscureText: t.an,
+                        maxLines: t.nhieuDong ? 5 : 1,
+                        keyboardType: t.so
+                            ? const TextInputType.numberWithOptions(
+                                decimal: true,
+                              )
+                            : TextInputType.text,
+                        decoration: InputDecoration(labelText: t.nhan),
+                        validator: (v) {
+                          if (t.batBuoc && (v == null || v.trim().isEmpty)) {
+                            return 'Vui lòng nhập ${t.nhan.toLowerCase()}';
+                          }
+                          if (t.so &&
+                              v != null &&
+                              v.isNotEmpty &&
+                              num.tryParse(v.replaceAll(',', '.')) == null) {
+                            return 'Nhập số hợp lệ';
+                          }
+                          return null;
+                        },
+                      ),
+              ),
+          ],
           if (widget.anh || widget.cv)
             OutlinedButton.icon(
               onPressed: gui ? null : chonTep,

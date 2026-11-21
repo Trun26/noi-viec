@@ -111,11 +111,15 @@ class _KhamPhaState extends State<KhamPha> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                            'Khám phá việc làm',
-                            style: TextStyle(
-                              color: Color(0xffffd3a5),
-                              fontWeight: FontWeight.w700,
+                          Flexible(
+                            child: Text(
+                              'Khám phá việc làm',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Color(0xffffd3a5),
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
                           SizedBox(width: 6),

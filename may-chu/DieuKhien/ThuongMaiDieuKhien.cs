@@ -13,7 +13,22 @@ public record DoiTrangThai(string TrangThai, string LyDo = "");
 [ApiController, Route("api/v1")]
 public class ThuongMaiDieuKhien(KhoDuLieu db, PhienLamViec phien, IConfiguration cauHinh) : ControllerBase
 {
-    [HttpGet("danh-muc")] public async Task<object> DanhMuc(string loai = "DichVu", string? q = null, int trang = 1) => await Trang(db.DanhMuc.Where(x => x.Loai == loai && (q == null || x.Ten.Contains(q))).OrderBy(x => x.Ten), trang, 50);
+    private const string MauDanhMucKiemThu =
+        "GÓI MẪU [0-9A-F][0-9A-F][0-9A-F][0-9A-F][0-9A-F]" +
+        "[0-9A-F][0-9A-F][0-9A-F][0-9A-F][0-9A-F]";
+
+    [HttpGet("danh-muc")]
+    public async Task<object> DanhMuc(string loai = "DichVu", string? q = null, int trang = 1, bool quanLy = false)
+    {
+        if (quanLy)
+            await phien.Nguoi(Request, "QuanTri");
+        var ds = db.DanhMuc
+            .Where(x => x.Loai == loai &&
+                (quanLy || x.HoatDong && !EF.Functions.Like(x.TenChuan, MauDanhMucKiemThu)) &&
+                (q == null || x.Ten.Contains(q)))
+            .OrderBy(x => x.Ten);
+        return await Trang(ds, trang, 50);
+    }
     private async Task GanDanhMuc(DanhMuc m, SuaDanhMuc d)
     {
         KiemTra(!string.IsNullOrWhiteSpace(d.Ten) && d.Ten.Length <= 150, "Tên danh mục cần 1–150 ký tự.");
@@ -68,13 +83,31 @@ public class ThuongMaiDieuKhien(KhoDuLieu db, PhienLamViec phien, IConfiguration
     {
         if (quanLy)
             await phien.Nguoi(Request, "QuanTri");
-        return await Trang(db.GoiLuot.Where(x => (quanLy || x.DangBan) && (danhMucId == null || x.DanhMucId == danhMucId) && (boQuaId == null || x.Id != boQuaId) && (q == null || x.Ten.Contains(q))).OrderByDescending(x => x.TaoLuc), trang, kichThuoc);
+        var ds = db.GoiLuot
+            .Where(x => (quanLy || x.DangBan && db.DanhMuc.Any(m =>
+                    m.Id == x.DanhMucId && m.HoatDong &&
+                    !EF.Functions.Like(m.TenChuan, MauDanhMucKiemThu))) &&
+                (danhMucId == null || x.DanhMucId == danhMucId) &&
+                (boQuaId == null || x.Id != boQuaId) &&
+                (q == null || x.Ten.Contains(q)))
+            .OrderByDescending(x => x.TaoLuc);
+        return await Trang(ds, trang, kichThuoc);
     }
-    [HttpGet("goi-luot/{id:guid}")] public async Task<object> ChiTietGoi(Guid id) => await db.GoiLuot.FindAsync(id) ?? throw new LoiNghiepVu("Không tìm thấy gói.", 404);
+    [HttpGet("goi-luot/{id:guid}")]
+    public async Task<object> ChiTietGoi(Guid id, bool quanLy = false)
+    {
+        if (quanLy)
+            await phien.Nguoi(Request, "QuanTri");
+        var goi = await db.GoiLuot.SingleOrDefaultAsync(x =>
+            x.Id == id && (quanLy || x.DangBan && db.DanhMuc.Any(m =>
+                m.Id == x.DanhMucId && m.HoatDong &&
+                !EF.Functions.Like(m.TenChuan, MauDanhMucKiemThu))));
+        return goi ?? throw new LoiNghiepVu("Không tìm thấy gói.", 404);
+    }
     private async Task GanGoi(GoiLuot m, SuaGoi d)
     {
         KiemTra(!string.IsNullOrWhiteSpace(d.Ten) && d.Gia > 0 && d.Gia <= 100000000 && d.SoLuot is > 0 and <= 10000, "Tên, giá hoặc số lượt không hợp lệ.");
-        KiemTra(await db.DanhMuc.AnyAsync(x => x.Id == d.DanhMucId && x.HoatDong && x.Loai == "DichVu"), "Danh mục không khả dụng.");
+        KiemTra(await db.DanhMuc.AnyAsync(x => x.Id == d.DanhMucId && (x.HoatDong || !d.DangBan) && x.Loai == "DichVu"), "Danh mục không khả dụng.");
         KiemTra(await db.Tep.AnyAsync(x => x.Id == d.AnhId && x.Loai == "Anh"), "Cần tải ảnh gói lên trước.");
         m.Ten = d.Ten.Trim();
         m.MoTa = d.MoTa;

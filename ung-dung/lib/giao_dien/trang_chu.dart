@@ -1,5 +1,7 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
+
 import '../nghiep_vu/ung_dung.dart';
 import 'bieu_mau.dart';
 import 'thanh_phan.dart';
@@ -175,34 +177,54 @@ class _TrangChuState extends State<TrangChu> {
         ),
       ],
       if (u.quanTri) ...[
-        muc(
-          'Thành viên & phân quyền',
-          Icons.manage_accounts,
-          () => mo(cn.thanhVien()),
+        NhomTacVuQuanTri(
+          tieuDe: 'Tài khoản và danh mục',
+          moTa: 'Quản lý quyền truy cập và nội dung nền tảng.',
+          tacVu: [
+            TacVuQuanTri(
+              'Thành viên & phân quyền',
+              Icons.manage_accounts,
+              () => mo(cn.thanhVien()),
+            ),
+            TacVuQuanTri(
+              'Duyệt doanh nghiệp',
+              Icons.business,
+              () => mo(cn.doanhNghiep()),
+            ),
+            TacVuQuanTri(
+              'Danh mục dịch vụ',
+              Icons.category_outlined,
+              () => mo(cn.danhMuc('DichVu')),
+            ),
+            TacVuQuanTri(
+              'Ngành nghề',
+              Icons.account_tree_outlined,
+              () => mo(cn.danhMuc('NganhNghe')),
+            ),
+          ],
         ),
-        muc('Duyệt doanh nghiệp', Icons.business, () => mo(cn.doanhNghiep())),
-        muc(
-          'Danh mục dịch vụ',
-          Icons.category_outlined,
-          () => mo(cn.danhMuc('DichVu')),
+        NhomTacVuQuanTri(
+          tieuDe: 'Gói, tin tuyển dụng và báo cáo',
+          moTa: 'Theo dõi hoạt động thương mại và tuyển dụng.',
+          tacVu: [
+            TacVuQuanTri(
+              'Quản lý gói đăng tin',
+              Icons.inventory_2_outlined,
+              () => mo(cn.goi(quanLy: true)),
+            ),
+            TacVuQuanTri(
+              'Duyệt tin tuyển dụng',
+              Icons.fact_check_outlined,
+              () => mo(cn.tin(quanLy: true)),
+            ),
+            TacVuQuanTri(
+              'Đơn mua lượt',
+              Icons.receipt_long,
+              () => mo(cn.don()),
+            ),
+            TacVuQuanTri('Thống kê', Icons.insights, () => mo(cn.thongKe())),
+          ],
         ),
-        muc(
-          'Ngành nghề',
-          Icons.account_tree_outlined,
-          () => mo(cn.danhMuc('NganhNghe')),
-        ),
-        muc(
-          'Quản lý gói đăng tin',
-          Icons.inventory_2_outlined,
-          () => mo(cn.goi(quanLy: true)),
-        ),
-        muc(
-          'Duyệt tin tuyển dụng',
-          Icons.fact_check_outlined,
-          () => mo(cn.tin(quanLy: true)),
-        ),
-        muc('Đơn hàng', Icons.receipt_long, () => mo(cn.don())),
-        muc('Thống kê', Icons.insights, () => mo(cn.thongKe())),
       ] else if (u.nhaTuyen) ...[
         muc(
           'Doanh nghiệp của tôi',
@@ -413,6 +435,7 @@ class _TrangChuState extends State<TrangChu> {
               ],
               giaTri: {...hs, 'hoTen': u.nguoi!['hoTen']},
               khoaNhap: 'ho-so-ca-nhan',
+              hoSoCaNhan: true,
               luu: (d) =>
                   u.suaCaNhan({'hoTen': d['hoTen'], 'hoSoJson': jsonEncode(d)}),
             );

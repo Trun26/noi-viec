@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:typed_data';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+
 import '../nghiep_vu/ung_dung.dart';
 import 'bieu_mau.dart';
 import 'thanh_phan.dart';
@@ -111,7 +113,7 @@ class ChucNang {
   Widget danhMuc(String loai) => ManDanhSach(
     ung: u,
     tieuDe: loai == 'DichVu' ? 'Danh mục dịch vụ' : 'Ngành nghề',
-    duongDan: 'danh-muc?loai=$loai',
+    duongDan: 'danh-muc?loai=$loai&quanLy=true',
     them: () => suaDanhMuc(loai),
     ve: (d, tai) => TheNoiDung(
       tieuDe: d['ten'],
@@ -179,9 +181,12 @@ class ChucNang {
     duongDan:
         'goi-luot?quanLy=$quanLy${danhMucId == null ? '' : '&danhMucId=$danhMucId'}${boQuaId == null ? '' : '&boQuaId=$boQuaId'}',
     them: quanLy ? () => suaGoi() : null,
-    ve: (d, tai) => TheNoiDung(
+    ve: (d, tai) => TheGoiDangTin(
       tieuDe: d['ten'],
-      phu: '${tien(d['gia'])} • ${d['soLuot']} lượt/gói\n${d['moTa']}',
+      moTa: d['moTa'] ?? '',
+      gia: tien(d['gia']),
+      soLuot: d['soLuot'],
+      dangBan: d['dangBan'] ?? true,
       anh: anh(d['anhId']),
       mo: () => thucHien(c, () => chiTietGoi(d['id'])),
       hanhDong: [
@@ -215,22 +220,26 @@ class ChucNang {
     ),
   );
   Future<void> chiTietGoi(String id) async {
-    final ct = Map<String, dynamic>.from(await u.danhSach('goi-luot/$id'));
-    await thongTin(
-      ct['ten'],
-      {'gia': tien(ct['gia']), ...ct},
-      {'moTa': 'Mô tả', 'soLuot': 'Lượt trong mỗi gói'},
-      hanhDong: [
-        Text('Giá: ${tien(ct['gia'])}'),
-        if (u.nhaTuyen)
-          nut('Thêm vào giỏ', () async {
+    final ct = Map<String, dynamic>.from(
+      await u.danhSach('goi-luot/$id${u.quanTri ? '?quanLy=true' : ''}'),
+    );
+    if (!c.mounted) return;
+    await Navigator.push(
+      c,
+      MaterialPageRoute(
+        builder: (_) => _ManChiTietGoi(
+          goi: ct,
+          api: u.api.diaChi,
+          themDuoc: u.nhaTuyen,
+          dangGui: u.dangGui,
+          them: () async {
             await u.themGio(ct);
-            if (c.mounted) bao(c, 'Đã thêm gói vào giỏ.');
-          }),
-        nut('Xem gói cùng danh mục', () async {
-          mo(goi(danhMucId: ct['danhMucId'], boQuaId: ct['id']));
-        }),
-      ],
+            if (c.mounted) bao(c, 'Đã thêm gói vào giỏ (${u.soGoi} gói).');
+          },
+          xemCungDanhMuc: () =>
+              mo(goi(danhMucId: ct['danhMucId'], boQuaId: ct['id'])),
+        ),
+      ),
     );
   }
 
@@ -275,10 +284,48 @@ class ChucNang {
         tong += d['soLuong'] * d['gia'];
       }
       return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        child: TheNoiDung(
-          tieuDe: 'Tổng ${tien(tong)}',
-          phu: '$goi gói • $luot lượt đăng tin',
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+        child: Card(
+          color: const Color(0xfff2efff),
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Tóm tắt giỏ hàng',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _SoLieuGio(nhan: 'Số gói', giaTri: '$goi'),
+                    ),
+                    Expanded(
+                      child: _SoLieuGio(nhan: 'Lượt đăng', giaTri: '$luot'),
+                    ),
+                    Expanded(
+                      child: _SoLieuGio(nhan: 'Tạm tính', giaTri: tien(tong)),
+                    ),
+                  ],
+                ),
+                if (ds.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: u.dangGui
+                          ? null
+                          : () => thucHien(c, () => datDonTuGio(tai)),
+                      icon: const Icon(Icons.lock_outline),
+                      label: const Text('Kiểm tra và đặt đơn'),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
         ),
       );
     },
@@ -286,13 +333,14 @@ class ChucNang {
     tieuDe: 'Giỏ hàng',
     duongDan: 'gio-hang',
     timKiem: false,
-    ve: (d, tai) => TheNoiDung(
+    ve: (d, tai) => TheDongGioHang(
       tieuDe: d['ten'],
-      phu:
-          '${d['soLuong']} gói × ${tien(d['gia'])}\n${d['soLuong'] * d['soLuot']} lượt • ${tien(d['soLuong'] * d['gia'])}${d['gia'] != d['giaDaXem'] ? '\nGiá đã thay đổi. Cần xác nhận lại.' : ''}',
+      chiTiet:
+          '${d['soLuong']} gói × ${tien(d['gia'])} / gói\n${d['soLuong'] * d['soLuot']} lượt • Thành tiền ${tien(d['soLuong'] * d['gia'])}',
+      doiGia: d['gia'] != d['giaDaXem'],
       anh: anh(d['anhId']),
       hanhDong: [
-        nut('Đổi số lượng / xác nhận giá', () async {
+        nut('Sửa số lượng / xác nhận giá', () async {
           await moBieuMau(
             c,
             u,
@@ -314,27 +362,29 @@ class ChucNang {
           await xoa('gio-hang/${d['id']}', tai);
           await u.capNhatGio();
         }),
-        nut('Xem tổng & đặt đơn', () async {
-          final ds = await u.danhSach('gio-hang') as List;
-          num tong = 0, luot = 0, goi = 0;
-          for (final x in ds) {
-            tong += x['gia'] * x['soLuong'];
-            luot += x['soLuot'] * x['soLuong'];
-            goi += x['soLuong'];
-          }
-          if (!c.mounted) return;
-          if (await xacNhan(
-            c,
-            'Đặt $goi gói, $luot lượt với tổng ${tien(tong)}? Giá được máy chủ kiểm tra lại.',
-          )) {
-            final don = await u.datDon();
-            tai();
-            await chiTietDon(don['id']);
-          }
-        }),
       ],
     ),
   );
+  Future<void> datDonTuGio(VoidCallback tai) async {
+    final ds = await u.danhSach('gio-hang') as List;
+    num tong = 0, luot = 0, goi = 0;
+    for (final x in ds) {
+      tong += x['gia'] * x['soLuong'];
+      luot += x['soLuot'] * x['soLuong'];
+      goi += x['soLuong'];
+    }
+    if (!c.mounted || ds.isEmpty) return;
+    if (await xacNhan(
+      c,
+      'Đặt $goi gói, $luot lượt với tổng ${tien(tong)}? Giá được máy chủ kiểm tra lại.',
+    )) {
+      final don = await u.datDon();
+      await u.capNhatGio();
+      tai();
+      await chiTietDon(don['id']);
+    }
+  }
+
   Future<void> locDon() async {
     final loc = await moBieuMau(c, u, 'Lọc đơn mua lượt', const [
       TruongNhap(
@@ -373,10 +423,11 @@ class ChucNang {
     tieuDe: 'Đơn hàng',
     duongDan: 'don-hang$boLoc',
     them: null,
-    ve: (d, tai) => TheNoiDung(
-      tieuDe: d['ma'],
-      phu:
-          '${tien(d['tongTien'])} • ${d['tongLuot']} lượt\n${ngay(d['taoLuc'])}',
+    ve: (d, tai) => TheDonMuaLuot(
+      ma: d['ma'],
+      tongTien: tien(d['tongTien']),
+      tongLuot: d['tongLuot'],
+      taoLuc: ngay(d['taoLuc']),
       trangThai: d['trangThai'],
       mo: () => thucHien(c, () => chiTietDon(d['id'])),
       hanhDong: [
@@ -392,34 +443,11 @@ class ChucNang {
     ),
   );
   Future<void> chiTietDon(String id) async {
-    final d = await u.danhSach('don-hang/$id');
+    final d = Map<String, dynamic>.from(await u.danhSach('don-hang/$id'));
     if (!c.mounted) return;
-    await thongTin(
-      d['ma'],
-      {
-        'trangThai': d['trangThai'],
-        'tongTien': tien(d['tongTien']),
-        'tongLuot': d['tongLuot'],
-        'taoLuc': ngay(d['taoLuc']),
-        'chiTiet': (d['chiTiet'] as List)
-            .map(
-              (x) =>
-                  '${x['tenGoi']}: ${x['soLuong']} × ${tien(x['donGia'])} (${x['soLuot']} lượt/gói)',
-            )
-            .join('\n'),
-      },
-      {
-        'trangThai': 'Trạng thái',
-        'taoLuc': 'Thời gian tạo',
-        'chiTiet': 'Chi tiết tại thời điểm đặt',
-        'tongTien': 'Tổng tiền',
-        'tongLuot': 'Tổng lượt',
-      },
-      hanhDong: [
-        const Text(
-          'Thanh toán trong bản này do quản trị xác nhận ở chế độ trình diễn. Không phải giao dịch thanh toán trực tuyến.',
-        ),
-      ],
+    await Navigator.push(
+      c,
+      MaterialPageRoute(builder: (_) => _ManChiTietDon(don: d)),
     );
   }
 
@@ -870,9 +898,9 @@ class ChucNang {
     them: () async {
       await moBieuMau(c, u, 'Tải CV', const [], cv: true);
     },
-    ve: (d, tai) => TheNoiDung(
-      tieuDe: d['ten'],
-      phu: ngay(d['taoLuc']),
+    ve: (d, tai) => TheCvCaNhan(
+      ten: d['ten'],
+      ngayTai: ngay(d['taoLuc']),
       hanhDong: [
         nut('Tải xuống', () => taiCv(d['id'])),
         nut('Xóa', () => xoa('tep/${d['id']}', tai)),
@@ -893,10 +921,11 @@ class ChucNang {
     tieuDe: 'Hồ sơ ứng tuyển',
     duongDan: 'ho-so${tinId == null ? '' : '?tinId=$tinId'}',
     timKiem: false,
-    ve: (d, tai) => TheNoiDung(
-      tieuDe: 'Hồ sơ • ${ngay(d['taoLuc'])}',
-      phu: d['thuGioiThieu'],
+    ve: (d, tai) => TheHoSoUngTuyen(
+      tieuDe: u.nhaTuyen ? 'Hồ sơ ứng viên' : 'Hồ sơ đã gửi',
+      ngayNop: ngay(d['taoLuc']),
       trangThai: d['trangThai'],
+      thuGioiThieu: d['thuGioiThieu'],
       mo: () => thucHien(c, () => chiTietHoSo(d['id'])),
       hanhDong: [
         nut('Xem hồ sơ / CV', () => chiTietHoSo(d['id'])),
@@ -1026,6 +1055,254 @@ class ChucNang {
   }
 }
 
+class _ManChiTietGoi extends StatelessWidget {
+  final Map<String, dynamic> goi;
+  final String api;
+  final bool themDuoc, dangGui;
+  final Future<void> Function() them;
+  final VoidCallback xemCungDanhMuc;
+  const _ManChiTietGoi({
+    required this.goi,
+    required this.api,
+    required this.themDuoc,
+    required this.dangGui,
+    required this.them,
+    required this.xemCungDanhMuc,
+  });
+
+  @override
+  Widget build(BuildContext c) => Scaffold(
+    appBar: AppBar(title: const Text('Chi tiết gói đăng tin')),
+    body: ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: Image.network(
+            '$api/tep/${goi['anhId']}',
+            height: 190,
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) => Container(
+              height: 190,
+              color: const Color(0xffeeeaff),
+              child: const Icon(
+                Icons.inventory_2_outlined,
+                size: 56,
+                color: Color(0xff6250d8),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 18),
+        Text(
+          goi['ten'],
+          style: Theme.of(
+            c,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 14),
+        Card(
+          color: const Color(0xfff2efff),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.bolt_rounded,
+                  color: Color(0xff6250d8),
+                  size: 28,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    '${goi['soLuot']} lượt đăng tin',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                Text(
+                  tien(goi['gia']),
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xff4338ca),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
+        Text(
+          'Giới thiệu gói',
+          style: Theme.of(
+            c,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          goi['moTa']?.toString().isNotEmpty == true
+              ? goi['moTa']
+              : 'Gói lượt đăng tin dành cho nhà tuyển dụng.',
+          style: const TextStyle(height: 1.6, color: Color(0xff526177)),
+        ),
+        const SizedBox(height: 20),
+        if (themDuoc)
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: dangGui ? null : () => thucHien(c, them),
+              icon: const Icon(Icons.add_shopping_cart),
+              label: const Text('Thêm vào giỏ hàng'),
+            ),
+          ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: xemCungDanhMuc,
+          icon: const Icon(Icons.category_outlined),
+          label: const Text('Xem các gói cùng danh mục'),
+        ),
+      ],
+    ),
+  );
+}
+
+class _ManChiTietDon extends StatelessWidget {
+  final Map<String, dynamic> don;
+  const _ManChiTietDon({required this.don});
+
+  @override
+  Widget build(BuildContext c) => Scaffold(
+    appBar: AppBar(title: const Text('Chi tiết đơn hàng')),
+    body: ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        Card(
+          color: const Color(0xfff2efff),
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(
+                  Icons.receipt_long,
+                  color: Color(0xff6250d8),
+                  size: 30,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  don['ma'],
+                  style: Theme.of(
+                    c,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 8),
+                NhanTrangThai(don['trangThai']),
+                const SizedBox(height: 14),
+                Text(
+                  'Đặt lúc ${ngay(don['taoLuc'])}',
+                  style: const TextStyle(color: Color(0xff687385)),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _SoLieuGio(
+                    nhan: 'Tổng thanh toán',
+                    giaTri: tien(don['tongTien']),
+                  ),
+                ),
+                Expanded(
+                  child: _SoLieuGio(
+                    nhan: 'Lượt đăng',
+                    giaTri: '${don['tongLuot']}',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Gói trong đơn',
+                  style: Theme.of(c).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                for (final x in (don['chiTiet'] as List)) ...[
+                  const Divider(height: 18),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(
+                        Icons.inventory_2_outlined,
+                        color: Color(0xff6250d8),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              x['tenGoi'],
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${x['soLuong']} gói × ${tien(x['donGia'])} • ${x['soLuot']} lượt/gói',
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        tien(x['soLuong'] * x['donGia']),
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        const Card(
+          child: Padding(
+            padding: EdgeInsets.all(16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.info_outline, color: Color(0xff6250d8)),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Thanh toán trong bản này do quản trị xác nhận ở chế độ trình diễn; đây không phải giao dịch trực tuyến.',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 class _ThongKe extends StatefulWidget {
   final UngDung u;
   const _ThongKe({required this.u});
@@ -1110,5 +1387,30 @@ class _ThongKeState extends State<_ThongKe> {
         ),
       ],
     ),
+  );
+}
+
+class _SoLieuGio extends StatelessWidget {
+  final String nhan, giaTri;
+  const _SoLieuGio({required this.nhan, required this.giaTri});
+
+  @override
+  Widget build(BuildContext c) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        nhan,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontSize: 12, color: Color(0xff687385)),
+      ),
+      const SizedBox(height: 3),
+      Text(
+        giaTri,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontWeight: FontWeight.w800),
+      ),
+    ],
   );
 }

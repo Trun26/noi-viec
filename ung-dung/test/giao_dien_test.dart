@@ -97,12 +97,17 @@ void main() {
     await t.pumpWidget(Mobi(ung: u));
     await t.pumpAndSettle();
     expect(find.text('Chào mừng trở lại!'), findsOneWidget);
+    expect(t.takeException(), isNull, reason: 'Màn đăng nhập ban đầu');
     await t.tap(find.text('Khám phá việc làm trước'));
     await t.pumpAndSettle();
     expect(find.text('Nối Việc'), findsOneWidget);
     expect(find.text('Đăng nhập'), findsNothing);
     expect(find.text('Tạo tài khoản'), findsNothing);
-    expect(t.takeException(), isNull);
+    expect(
+      t.takeException(),
+      isNull,
+      reason: 'Trang chủ phải vừa màn hình 360 px',
+    );
     await t.tap(find.text('Gói đăng tin'));
     await t.pumpAndSettle();
     expect(find.text('Gói cơ bản'), findsOneWidget);

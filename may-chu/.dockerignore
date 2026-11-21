@@ -1,0 +1,9 @@
+bin/
+obj/
+kho-tep/
+appsettings.Development.json
+*.user
+*.pfx
+*.jks
+*.keystore
+.git/

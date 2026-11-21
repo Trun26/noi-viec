@@ -1,0 +1,15 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Mobi Android",
+      "request": "launch",
+      "type": "dart",
+      "program": "${workspaceFolder}/ung-dung/lib/main.dart",
+      "cwd": "${workspaceFolder}/ung-dung",
+      "toolArgs": [
+        "--dart-define=API_URL=http://10.0.2.2:5080/api/v1"
+      ]
+    }
+  ]
+}

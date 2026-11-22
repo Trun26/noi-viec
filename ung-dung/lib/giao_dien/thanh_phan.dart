@@ -12,8 +12,9 @@ String ngay(dynamic s) {
   final d = DateTime.tryParse(s?.toString() ?? '');
   return d == null
       ? ''
-      : DateFormat('dd/MM/yyyy HH:mm')
-            .format(d.toUtc().add(const Duration(hours: 7)));
+      : DateFormat(
+          'dd/MM/yyyy HH:mm',
+        ).format(d.toUtc().add(const Duration(hours: 7)));
 }
 
 const nhan = {
@@ -110,7 +111,7 @@ class ManDanhSach extends StatefulWidget {
   final String? thamSo, tuKhoaBanDau;
   final Widget Function(Map<String, dynamic>, VoidCallback) ve;
   final Future<void> Function()? them;
-  final bool timKiem;
+  final bool timKiem, phanDauKhiLoi;
   const ManDanhSach({
     super.key,
     required this.ung,
@@ -121,6 +122,7 @@ class ManDanhSach extends StatefulWidget {
     this.thamSo,
     this.tuKhoaBanDau,
     this.timKiem = true,
+    this.phanDauKhiLoi = false,
     this.hanhDong = const [],
     this.phanDau,
   });
@@ -238,7 +240,8 @@ class _ManDanhSachState extends State<ManDanhSach> {
               'Dữ liệu đã lưu • ${ngay(capNhat)}. Thao tác cần mạng.',
             ),
           ),
-        if (!tai && loi == null && widget.phanDau != null)
+        if ((widget.phanDauKhiLoi || (!tai && loi == null)) &&
+            widget.phanDau != null)
           widget.phanDau!(ds, doc),
         Expanded(
           child: tai
@@ -352,8 +355,9 @@ class TheNoiDung extends StatelessWidget {
                 Expanded(
                   child: Text(
                     tieuDe,
-                    style: Theme.of(c).textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w700),
+                    style: Theme.of(c).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
                 if (trangThai != null)
@@ -419,8 +423,9 @@ class TheGoiDangTin extends StatelessWidget {
                         tieuDe,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(c).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w800),
+                        style: Theme.of(c).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                       const SizedBox(height: 6),
                       Text(
@@ -509,8 +514,9 @@ class TheDongGioHang extends StatelessWidget {
               Expanded(
                 child: Text(
                   tieuDe,
-                  style: Theme.of(c).textTheme.titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w800),
+                  style: Theme.of(c).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
               const Icon(Icons.shopping_bag_outlined, color: Color(0xff6250d8)),
@@ -579,8 +585,9 @@ class TheDonMuaLuot extends StatelessWidget {
                 Expanded(
                   child: Text(
                     ma,
-                    style: Theme.of(c).textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w800),
+                    style: Theme.of(c).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
                 NhanTrangThai(trangThai),
@@ -679,8 +686,9 @@ class TheHoSoUngTuyen extends StatelessWidget {
                     children: [
                       Text(
                         tieuDe,
-                        style: Theme.of(c).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w800),
+                        style: Theme.of(c).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                       const SizedBox(height: 5),
                       Text(
@@ -753,8 +761,9 @@ class TheCvCaNhan extends StatelessWidget {
                       ten,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(c).textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w800),
+                      style: Theme.of(c).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -802,8 +811,9 @@ class NhomTacVuQuanTri extends StatelessWidget {
         children: [
           Text(
             tieuDe,
-            style: Theme.of(c).textTheme.titleMedium
-                ?.copyWith(fontWeight: FontWeight.w800),
+            style: Theme.of(
+              c,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 4),
           Text(moTa, style: const TextStyle(color: Color(0xff687385))),

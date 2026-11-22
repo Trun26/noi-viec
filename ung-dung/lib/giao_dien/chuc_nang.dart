@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../nghiep_vu/ung_dung.dart';
 import 'bieu_mau.dart';
 import 'thanh_phan.dart';
+import 'tao_cv.dart';
 import 'chi_tiet_viec.dart';
 
 String _mucLuong(dynamic min, dynamic max) {
@@ -902,9 +903,40 @@ class ChucNang {
     tieuDe: 'CV của tôi',
     duongDan: 'tep',
     timKiem: false,
-    them: () async {
-      await moBieuMau(c, u, 'Tải CV', const [], cv: true);
-    },
+    phanDauKhiLoi: true,
+    phanDau: (_, taiLai) => Padding(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
+      child: Wrap(
+        spacing: 10,
+        runSpacing: 8,
+        children: [
+          FilledButton.icon(
+            onPressed: () => thucHien(c, () async {
+              final daLuu = await Navigator.push<bool>(
+                c,
+                MaterialPageRoute(builder: (_) => TaoCv(ung: u)),
+              );
+              if (daLuu == true) {
+                taiLai();
+                if (c.mounted) {
+                  bao(c, 'Đã lưu CV. Bạn có thể chọn CV này khi ứng tuyển.');
+                }
+              }
+            }),
+            icon: const Icon(Icons.auto_awesome_outlined),
+            label: const Text('Tạo CV mới'),
+          ),
+          OutlinedButton.icon(
+            onPressed: () => thucHien(c, () async {
+              await moBieuMau(c, u, 'Tải CV', const [], cv: true);
+              taiLai();
+            }),
+            icon: const Icon(Icons.upload_file),
+            label: const Text('Tải PDF có sẵn'),
+          ),
+        ],
+      ),
+    ),
     ve: (d, tai) => TheCvCaNhan(
       ten: d['ten'],
       ngayTai: ngay(d['taoLuc']),

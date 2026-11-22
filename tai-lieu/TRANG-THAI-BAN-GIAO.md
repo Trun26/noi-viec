@@ -37,3 +37,9 @@ PowerShell parser đã đọc script không có lỗi cú pháp. Chưa chạy t�
 ## Kiểm tra Pixel 7 mới nhất
 
 `flutter run` đã build và cài app debug trên AVD Pixel 7. Màn đăng nhập/trang khách mở được; khi API offline hiện nút tải lại sau timeout; Back từ trang khách về launcher; logcat không thấy lỗi Flutter hay tràn Flex. Đã mở Gboard và focus ô email, Back đóng bàn phím; cần kiểm tra trực quan bố cục sau bàn phím thêm. Backend chưa chạy; Docker Desktop/CLI, `sqlcmd` và `dotnet` không có trong môi trường hiện tại nên luồng dữ liệu/tài khoản và các kịch bản API chưa được nghiệm thu. APK debug và SHA-256 nằm trong `ket-qua-kiem-tra.md`.
+
+## Tạo CV trên Android — 22/11/2026
+
+Đã thêm CV của tôi → Tạo CV mới: điền sẵn từ hồ sơ, chỉnh nội dung, lưu/khôi phục nháp theo tài khoản, chọn hai mẫu màu, xem chính PDF nhiều trang, xuất PDF ra thiết bị và tải lên tài khoản để ứng tuyển. Không thêm dịch vụ bên ngoài hoặc đổi database. Đã chặn dữ liệu phiên cũ khi đổi tài khoản.
+
+Dart analyze phần vừa thêm/sửa không có vấn đề; Kotlin MainActivity biên dịch riêng đạt; 3/3 widget test do người dùng chạy trong terminal đạt. Chưa nghiệm thu PDF thực tế tiếng Việt, nhiều trang và upload/ứng tuyển trên Pixel 7. Build APK trong sandbox không kết nối được Gradle daemon; cần dừng flutter run cũ và build lại để đăng ký MethodChannel mới. Chi tiết: TAO-CV-TRONG-APP.md.

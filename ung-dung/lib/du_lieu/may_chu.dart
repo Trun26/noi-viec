@@ -56,11 +56,17 @@ class MayChu {
     try {
       kq = jsonDecode(nd);
     } catch (_) {
-      throw LoiApi('Máy chủ trả dữ liệu không hợp lệ.', ma);
+      if (ma == 404) {
+        throw LoiApi('Không tìm thấy chức năng trên máy chủ (404). Hãy khởi động lại máy chủ bằng mã mới.', ma);
+      }
+      if (ma >= 500) {
+        throw LoiApi('Máy chủ gặp lỗi ($ma). Kiểm tra cửa sổ chạy máy chủ.', ma);
+      }
+      throw LoiApi('Máy chủ trả dữ liệu không hợp lệ (HTTP $ma).', ma);
     }
     if (ma >= 400) {
       throw LoiApi(
-        kq['thongBao'] ??
+        (kq is Map ? kq['thongBao'] : null) ??
             (ma == 400
                 ? 'Thông tin nhập chưa hợp lệ.'
                 : 'Không xử lý được yêu cầu.'),

@@ -9,6 +9,7 @@ import 'chuc_nang.dart';
 import 'man_xac_thuc.dart';
 import 'kham_pha.dart';
 import 'tai_khoan.dart';
+import 'quan_tri.dart';
 
 class TrangChu extends StatefulWidget {
   final UngDung ung;
@@ -99,6 +100,89 @@ class _TrangChuState extends State<TrangChu> {
       );
     }
     final cn = ChucNang(c, u);
+    if (u.quanTri) {
+      final noiDungQuanTri = switch (tab) {
+        1 => NguoiDungQuanTri(ung: u),
+        2 => cn.doanhNghiep(),
+        3 => cn.tin(quanLy: true),
+        4 => DanhMucQuanTri(ung: u),
+        5 => cn.don(),
+        6 => taiKhoan(cn),
+        _ => TongQuanQuanTri(ung: u, thongBao: () => mo(cn.thongBao())),
+      };
+      const nhan = [
+        'Trang chủ',
+        'Người dùng',
+        'Doanh nghiệp',
+        'Tin',
+        'Danh mục',
+        'Đơn mua',
+        'Tài khoản',
+      ];
+      const bieuTuong = [
+        Icons.grid_view_rounded,
+        Icons.people_outline,
+        Icons.business_outlined,
+        Icons.article_outlined,
+        Icons.category_outlined,
+        Icons.receipt_long,
+        Icons.person_outline,
+      ];
+      return Scaffold(
+        body: SafeArea(
+          child: KeyedSubtree(
+            key: ValueKey('quan-tri-$tab'),
+            child: noiDungQuanTri,
+          ),
+        ),
+        bottomNavigationBar: Material(
+          color: Colors.white,
+          elevation: 8,
+          child: SafeArea(
+            top: false,
+            child: Row(
+              children: [
+                for (var i = 0; i < nhan.length; i++)
+                  Expanded(
+                    flex: tab == i ? 2 : 1,
+                    child: Tooltip(
+                      message: nhan[i],
+                      child: InkWell(
+                        onTap: () => setState(() => tab = i),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                bieuTuong[i],
+                                color: tab == i
+                                    ? const Color(0xff6250d8)
+                                    : Colors.blueGrey,
+                              ),
+                              const SizedBox(height: 5),
+                              if (tab == i)
+                                Text(
+                                  nhan[i],
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xff6250d8),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
     final noiDung = tab == 1
         ? cn.tin()
         : tab == 2

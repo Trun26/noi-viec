@@ -57,6 +57,17 @@ if (args.Contains("--tao-quan-tri"))
     await db.SaveChangesAsync();
     return;
 }
+if (args.Contains("--tao-bo-mau-20"))
+{
+    using var scope = app.Services.CreateScope();
+    await MayChu.DuLieuMau.TaoBoMauNghiemThu.Tao(
+        scope.ServiceProvider.GetRequiredService<KhoDuLieu>(),
+        scope.ServiceProvider.GetRequiredService<PasswordHasher<TaiKhoan>>(),
+        scope.ServiceProvider.GetRequiredService<PhienLamViec>(),
+        app.Environment.ContentRootPath,
+        DocNhap.MatKhau("MAT_KHAU_MAU", "Mật khẩu bộ mẫu (12–128 ký tự)"));
+    return;
+}
 if (args.Contains("--tao-du-lieu-mau"))
 {
     using var scope = app.Services.CreateScope();

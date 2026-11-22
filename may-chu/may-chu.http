@@ -1,0 +1,14 @@
+@may_chu_HostAddress = http://localhost:5080
+
+GET {{may_chu_HostAddress}}/api/v1/suc-khoe
+Accept: application/json
+
+###
+
+GET {{may_chu_HostAddress}}/api/v1/goi-luot?trang=1&kichThuoc=12
+Accept: application/json
+
+###
+
+GET {{may_chu_HostAddress}}/api/v1/tin-tuyen-dung?trang=1
+Accept: application/json

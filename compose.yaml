@@ -1,0 +1,12 @@
+services:
+  sql-server:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MAT_KHAU_SQL:?Dat MAT_KHAU_SQL trong .env}
+    ports:
+      - "127.0.0.1:14333:1433"
+    volumes:
+      - du-lieu-sql:/var/opt/mssql
+volumes:
+  du-lieu-sql:

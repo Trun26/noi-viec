@@ -1,0 +1,27 @@
+{
+  "git.enabled": true,
+  "git.autoRepositoryDetection": true,
+  "dart.analysisExcludedFolders": [
+    "work",
+    "outputs"
+  ],
+  "files.watcherExclude": {
+    "**/work/**": true,
+    "**/outputs/**": true,
+    "**/build/**": true,
+    "**/.gradle/**": true
+  },
+  "files.exclude": {
+    "work": true,
+    "**/.dart_tool": true,
+    "**/build": true,
+    "**/bin": true,
+    "**/obj": true
+  },
+  "search.exclude": {
+    "work/**": true,
+    "**/build/**": true,
+    "**/bin/**": true,
+    "**/obj/**": true
+  }
+}

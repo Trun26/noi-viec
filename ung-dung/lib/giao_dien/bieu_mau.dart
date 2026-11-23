@@ -7,6 +7,14 @@ import 'thanh_phan.dart';
 class TruongNhap {
   final String khoa, nhan;
   final bool batBuoc, so, an, nhieuDong;
+  bool get laNgay => const {
+    'hanNhan',
+    'tuNgay',
+    'denNgay',
+    'ngaySinh',
+    'gioPhongVan',
+  }.contains(khoa);
+  bool get coGio => khoa == 'gioPhongVan';
   final Map<String, String>? chon;
   const TruongNhap(
     this.khoa,
@@ -102,6 +110,39 @@ class _ManBieuMauState extends State<ManBieuMau> {
           : nhap[t.khoa]!.text.trim(),
     if (anhId != null) (widget.cv ? 'cvId' : 'anhId'): anhId,
   };
+  Future<void> chonLich(TruongNhap t) async {
+    final cu = DateTime.tryParse(nhap[t.khoa]!.text)?.toLocal();
+    final d = await showDatePicker(
+      context: context,
+      initialDate: cu ?? DateTime.now(),
+      firstDate: DateTime(1900),
+      lastDate: DateTime(2200),
+      initialEntryMode: DatePickerEntryMode.calendarOnly,
+      helpText: 'Chọn ngày',
+      cancelText: 'Hủy',
+      confirmText: 'Chọn',
+    );
+    if (d == null || !mounted) return;
+    var kq = d;
+    if (t.coGio) {
+      final g = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(cu ?? DateTime.now()),
+        initialEntryMode: TimePickerEntryMode.dialOnly,
+        helpText: 'Chọn giờ',
+        cancelText: 'Hủy',
+        confirmText: 'Chọn',
+      );
+      if (g == null || !mounted) return;
+      kq = DateTime(d.year, d.month, d.day, g.hour, g.minute);
+    }
+    setState(
+      () => nhap[t.khoa]!.text = t.coGio
+          ? kq.toIso8601String()
+          : kq.toIso8601String().substring(0, 10),
+    );
+  }
+
   Future<void> chonTep() async {
     setState(() => gui = true);
     try {
@@ -250,6 +291,8 @@ class _ManBieuMauState extends State<ManBieuMau> {
                     : TextFormField(
                         controller: nhap[t.khoa],
                         enabled: !gui,
+                        readOnly: t.laNgay,
+                        onTap: t.laNgay && !gui ? () => chonLich(t) : null,
                         obscureText: t.an,
                         maxLines: t.nhieuDong ? 5 : 1,
                         keyboardType: t.so
@@ -257,7 +300,20 @@ class _ManBieuMauState extends State<ManBieuMau> {
                                 decimal: true,
                               )
                             : TextInputType.text,
-                        decoration: InputDecoration(labelText: t.nhan),
+                        decoration: InputDecoration(
+                          labelText: t.nhan
+                              .replaceAll(' (yyyy-MM-dd HH:mm)', '')
+                              .replaceAll(' (yyyy-MM-dd)', ''),
+                          suffixIcon: t.laNgay
+                              ? IconButton(
+                                  tooltip: 'Chọn ngày giờ',
+                                  onPressed: gui ? null : () => chonLich(t),
+                                  icon: const Icon(
+                                    Icons.calendar_month_outlined,
+                                  ),
+                                )
+                              : null,
+                        ),
                         validator: (v) {
                           if (t.batBuoc && (v == null || v.trim().isEmpty)) {
                             return 'Vui lòng nhập ${t.nhan.toLowerCase()}';

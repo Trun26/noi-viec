@@ -57,7 +57,21 @@ if (args.Contains("--tao-quan-tri"))
     await db.SaveChangesAsync();
     return;
 }
-if (args.Contains("--tao-bo-mau-20"))
+if (args.Contains("--xoa-co-so-du-lieu-mau20"))
+{
+    var chuoi = new SqlConnectionStringBuilder(builder.Configuration.GetConnectionString("DuLieu"));
+    PhienLamViec.KiemTra(chuoi.DataSource.Equals(@"(localdb)\Mobi", StringComparison.OrdinalIgnoreCase),
+        "Chỉ xóa bộ mẫu20 trên LocalDB Mobi.");
+    chuoi.InitialCatalog = "master";
+    await using var ketNoi = new SqlConnection(chuoi.ConnectionString);
+    await ketNoi.OpenAsync();
+    await using var lenh = ketNoi.CreateCommand();
+    lenh.CommandText = "IF DB_ID(N'mobi_mau20') IS NOT NULL BEGIN ALTER DATABASE [mobi_mau20] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [mobi_mau20]; END";
+    await lenh.ExecuteNonQueryAsync();
+    Console.WriteLine("Đã xóa cơ sở dữ liệu mobi_mau20 nếu tồn tại; không thay đổi cơ sở dữ liệu khác.");
+    return;
+}
+if (args.Contains("--tao-bo-mau-moi"))
 {
     using var scope = app.Services.CreateScope();
     await MayChu.DuLieuMau.TaoBoMauNghiemThu.Tao(
@@ -77,6 +91,12 @@ if (args.Contains("--tao-du-lieu-mau"))
         scope.ServiceProvider.GetRequiredService<PhienLamViec>(),
         app.Environment.ContentRootPath,
         DocNhap.MatKhau("MAT_KHAU_MAU", "Mật khẩu hai tài khoản mẫu (ít nhất 12 ký tự)"));
+    return;
+}
+if (args.Contains("--bo-sung-danh-muc"))
+{
+    using var scope = app.Services.CreateScope();
+    await MayChu.DuLieuMau.BoSungDanhMuc.Tao(scope.ServiceProvider.GetRequiredService<KhoDuLieu>());
     return;
 }
 app.Run();

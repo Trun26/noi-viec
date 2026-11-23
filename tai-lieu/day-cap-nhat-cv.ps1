@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Stop'
 $viTriCu = Get-Location
 function GitBatBuoc {
     & git @args

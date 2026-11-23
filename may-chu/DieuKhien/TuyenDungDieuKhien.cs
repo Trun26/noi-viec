@@ -21,6 +21,18 @@ public class TuyenDungDieuKhien(KhoDuLieu db, PhienLamViec phien) : ControllerBa
             await phien.Nguoi(Request, "QuanTri");
         return await Trang(db.DoanhNghiep.Where(x => (quanLy || x.TrangThai == "DaDuyet") && (q == null || x.Ten.Contains(q))).OrderByDescending(x => x.TaoLuc).Select(x => new { x.Id, x.Ten, x.DiaChi, x.GioiThieu, x.TrangThai, x.LyDo }), trang, 20);
     }
+    [HttpGet("quan-tri/doanh-nghiep")]
+    public async Task<object> DoanhNghiepQuanTri()
+    {
+        await phien.Nguoi(Request, "QuanTri");
+        return await db.DoanhNghiep.OrderByDescending(x => x.TaoLuc).Select(x => new {
+            x.Id, x.Ten, x.MaSoThue, x.DiaChi, x.GioiThieu, x.TrangThai, x.LyDo, x.TaoLuc,
+            x.NguoiPhuTrachId, x.DaCapMienPhi, x.SoLuotConLai, x.SoLuotDangGiu, x.SoLuotDaDung,
+            tenNguoiPhuTrach = db.TaiKhoan.Where(t => t.Id == x.NguoiPhuTrachId).Select(t => t.HoTen).FirstOrDefault(),
+            emailNguoiPhuTrach = db.TaiKhoan.Where(t => t.Id == x.NguoiPhuTrachId).Select(t => t.Email).FirstOrDefault(),
+            soNhanVien = db.TaiKhoan.Count(t => t.DoanhNghiepId == x.Id)
+        }).ToListAsync();
+    }
     [HttpGet("doanh-nghiep/toi")]
     public async Task<object> CongTyToi()
     {
@@ -291,6 +303,16 @@ public class TuyenDungDieuKhien(KhoDuLieu db, PhienLamViec phien) : ControllerBa
         return await phien.GiaoDich<object>(async () => { var t = await CongKhaiTin().SingleOrDefaultAsync(x => x.Id == id) ?? throw new LoiNghiepVu("Tin đã dừng nhận hồ sơ.", 409); KiemTra(await db.Tep.AnyAsync(x => x.Id == d.CvId && x.ChuSoHuuId == tk.Id && x.Loai == "CV"), "CV không hợp lệ."); KiemTra(!await db.HoSo.AnyAsync(x => x.UngVienId == tk.Id && x.TinId == id), "Bạn đã ứng tuyển tin này.", 409); var hs = new HoSoUngTuyen { TinId = id, UngVienId = tk.Id, CvId = d.CvId, BanHoSoJson = JsonSerializer.Serialize(new { tk.HoTen, tk.Email, tk.HoSoJson }), ThuGioiThieu = d.ThuGioiThieu }; db.Add(hs); db.Add(new LichSuHoSo { HoSoId = hs.Id, NguoiId = tk.Id, TrangThai = "DaGui" }); foreach (var nguoi in await db.TaiKhoan.Where(x => x.DoanhNghiepId == t.DoanhNghiepId).Select(x => x.Id).ToListAsync()) phien.Bao(nguoi, "Có hồ sơ ứng tuyển mới.", "ho-so/" + hs.Id); return hs; });
     }
     private IQueryable<HoSoUngTuyen> QuyenHoSo(TaiKhoan tk) => db.HoSo.Where(h => h.UngVienId == tk.Id || tk.VaiTro == "QuanTri" || tk.Loai == "NhaTuyenDung" && db.Tin.Any(t => t.Id == h.TinId && t.DoanhNghiepId == tk.DoanhNghiepId));
+    [HttpGet("ung-vien/tong-quan")]
+    public async Task<object> TongQuanUngVien()
+    {
+        var tk = await phien.Nguoi(Request, "UngVien");
+        return new {
+            daLuu = await db.ViecDaLuu.CountAsync(x => x.TaiKhoanId == tk.Id),
+            ungTuyen = await db.HoSo.CountAsync(x => x.UngVienId == tk.Id),
+            tinDaGui = await db.HoSo.Where(x => x.UngVienId == tk.Id).Select(x => x.TinId).Distinct().ToListAsync()
+        };
+    }
     [HttpGet("ho-so")]
     public async Task<object> HoSo(Guid? tinId, string? trangThai, int trang = 1)
     {
@@ -305,6 +327,11 @@ public class TuyenDungDieuKhien(KhoDuLieu db, PhienLamViec phien) : ControllerBa
         return new
         {
             hoSo = hs,
+            viecLam = await db.Tin.Where(t => t.Id == hs.TinId).Select(t => new {
+                t.Id, t.TieuDe, t.DiaDiem, t.HinhThuc, t.MoTa, t.YeuCau, t.QuyenLoi,
+                t.LuongMin, t.LuongMax, t.HanNhan,
+                TenDoanhNghiep = db.DoanhNghiep.Where(d => d.Id == t.DoanhNghiepId).Select(d => d.Ten).FirstOrDefault()
+            }).SingleOrDefaultAsync(),
             lichSu = await db.LichSuHoSo.Where(x => x.HoSoId == id).OrderBy(x => x.TaoLuc).ToListAsync()
         };
     }
@@ -315,4 +342,7 @@ public class TuyenDungDieuKhien(KhoDuLieu db, PhienLamViec phien) : ControllerBa
         return await phien.GiaoDich<object>(async () => { var hs = await QuyenHoSo(tk).SingleOrDefaultAsync(x => x.Id == id) ?? throw new LoiNghiepVu("Không tìm thấy hồ sơ.", 404); var rut = d.TrangThai == "DaRut"; KiemTra(rut ? hs.UngVienId == tk.Id : tk.Loai == "NhaTuyenDung", "Bạn không có quyền thực hiện.", 403); if (!rut) { await phien.CongTy(tk); KiemTra(await db.Tin.AnyAsync(t => t.Id == hs.TinId && t.DoanhNghiepId == tk.DoanhNghiepId), "Bạn không có quyền xử lý hồ sơ của doanh nghiệp khác.", 403); } KiemTra(QuyTacHoSo.ChoPhep(hs.TrangThai, d.TrangThai), "Chuyển trạng thái hồ sơ không hợp lệ.", 409); if (d.TrangThai == "MoiPhongVan") { KiemTra(d.GioPhongVan > DateTime.UtcNow && !string.IsNullOrWhiteSpace(d.HinhThuc) && !string.IsNullOrWhiteSpace(d.DiaDiem), "Nhập giờ tương lai, hình thức và địa điểm phỏng vấn."); hs.PhongVanJson = JsonSerializer.Serialize(new { d.GioPhongVan, d.HinhThuc, d.DiaDiem, d.GhiChu }); } hs.TrangThai = d.TrangThai; db.Add(new LichSuHoSo { HoSoId = id, NguoiId = tk.Id, TrangThai = d.TrangThai, GhiChu = d.GhiChu }); phien.Bao(hs.UngVienId, "Hồ sơ ứng tuyển đã đổi trạng thái.", "ho-so/" + id); return hs; });
     }
 }
+
+
+
 

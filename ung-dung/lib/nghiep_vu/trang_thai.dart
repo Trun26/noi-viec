@@ -10,7 +10,27 @@ class TrangThaiUngDung {
   void Function()? khiThayDoi;
   void notifyListeners() => khiThayDoi?.call();
   Map<String, dynamic>? nguoi;
-  int soGoi = 0;
+  int soGoi = 0, soDaLuu = 0, soUngTuyen = 0;
+  Set<String> tinDaGui = {};
+  Future<void> capNhatTimViec() async {
+    if (!ungVien) return;
+    final id = nguoi?['id'];
+    final d = await api.doc('ung-vien/tong-quan');
+    if (nguoi?['id'] != id || !ungVien) return;
+    soDaLuu = (d['daLuu'] as num).toInt();
+    soUngTuyen = (d['ungTuyen'] as num).toInt();
+    tinDaGui = (d['tinDaGui'] as List).map((x) => x.toString()).toSet();
+    notifyListeners();
+  }
+
+  Future<void> thuCapNhatTimViec() async {
+    try {
+      await capNhatTimViec();
+    } catch (_) {
+      /* Giữ số liệu đã xác minh khi mất mạng. */
+    }
+  }
+
   bool dangGui = false;
   String? khoaDon;
   bool get quanTri => nguoi?['vaiTro'] == 'QuanTri';
@@ -31,6 +51,7 @@ class TrangThaiUngDung {
         } catch (_) {}
       }
     }
+    await thuCapNhatTimViec();
     notifyListeners();
   }
 
@@ -44,7 +65,18 @@ class TrangThaiUngDung {
     dangGui = true;
     notifyListeners();
     try {
-      return await api.gui(dd, d, cach: cach);
+      final kq = await api.gui(dd, d, cach: cach);
+      if (ungVien &&
+          (dd.startsWith('viec-da-luu/') ||
+              dd.endsWith('/ung-tuyen') ||
+              dd.startsWith('ho-so/'))) {
+        if (dd.endsWith('/ung-tuyen')) {
+          final id = dd.split('/')[1];
+          if (tinDaGui.add(id)) soUngTuyen++;
+        }
+        await thuCapNhatTimViec();
+      }
+      return kq;
     } finally {
       dangGui = false;
       notifyListeners();
@@ -66,6 +98,7 @@ class TrangThaiUngDung {
         soGoi = 0;
       }
     }
+    await thuCapNhatTimViec();
     notifyListeners();
   }
 
@@ -83,6 +116,9 @@ class TrangThaiUngDung {
     } finally {
       nguoi = null;
       soGoi = 0;
+      soDaLuu = 0;
+      soUngTuyen = 0;
+      tinDaGui.clear();
       khoaDon = null;
       notifyListeners();
     }

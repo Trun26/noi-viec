@@ -10,6 +10,9 @@ import 'man_xac_thuc.dart';
 import 'kham_pha.dart';
 import 'tai_khoan.dart';
 import 'quan_tri.dart';
+import 'khong_gian_doanh_nghiep.dart';
+import 'doanh_nghiep_quan_tri.dart';
+import 'tin_quan_tri.dart';
 
 class TrangChu extends StatefulWidget {
   final UngDung ung;
@@ -103,10 +106,10 @@ class _TrangChuState extends State<TrangChu> {
     if (u.quanTri) {
       final noiDungQuanTri = switch (tab) {
         1 => NguoiDungQuanTri(ung: u),
-        2 => cn.doanhNghiep(),
-        3 => cn.tin(quanLy: true),
+        2 => DoanhNghiepQuanTri(ung: u),
+        3 => TinQuanTri(ung: u),
         4 => DanhMucQuanTri(ung: u),
-        5 => cn.don(),
+        5 => DonMuaQuanTri(ung: u),
         6 => taiKhoan(cn),
         _ => TongQuanQuanTri(ung: u, thongBao: () => mo(cn.thongBao())),
       };
@@ -189,18 +192,22 @@ class _TrangChuState extends State<TrangChu> {
     late final List<String> nhanTab;
     late final List<IconData> bieuTuongTab;
     if (laNhaTuyenDung) {
-      nhanTab = const ['T\u1ed5ng quan', 'Tin tuy\u1ec3n', '\u1ee8ng vi\u00ean', 'G\u00f3i', 'T\u00e0i kho\u1ea3n'];
-      bieuTuongTab = const [Icons.space_dashboard_outlined, Icons.work_outline, Icons.people_alt_outlined, Icons.inventory_2_outlined, Icons.person_outline];
-      noiDung = switch (tab) {
-        1 => cn.tin(quanLy: true),
-        2 => cn.hoSo(),
-        3 => cn.goi(),
-        4 => taiKhoan(cn),
-        _ => tongQuanTuyenDung(cn),
-      };
+      return KhongGianDoanhNghiep(ung: u, taiKhoan: () => taiKhoan(cn));
     } else if (laUngVien) {
-      nhanTab = const ['Kh\u00e1m ph\u00e1', 'Vi\u1ec7c l\u00e0m', '\u0110\u00e3 l\u01b0u', '\u1ee8ng tuy\u1ec3n', 'T\u00e0i kho\u1ea3n'];
-      bieuTuongTab = const [Icons.explore_outlined, Icons.search, Icons.bookmark_outline, Icons.assignment_outlined, Icons.person_outline];
+      nhanTab = [
+        'Kh\u00e1m ph\u00e1',
+        'Vi\u1ec7c l\u00e0m',
+        'Đã lưu (${u.soDaLuu})',
+        'Ứng tuyển (${u.soUngTuyen})',
+        'T\u00e0i kho\u1ea3n',
+      ];
+      bieuTuongTab = const [
+        Icons.explore_outlined,
+        Icons.search,
+        Icons.bookmark_outline,
+        Icons.assignment_outlined,
+        Icons.person_outline,
+      ];
       noiDung = switch (tab) {
         1 => cn.tin(),
         2 => cn.tin(daLuu: true),
@@ -209,8 +216,16 @@ class _TrangChuState extends State<TrangChu> {
         _ => trangDau(cn),
       };
     } else {
-      nhanTab = const ['Kh\u00e1m ph\u00e1', 'Vi\u1ec7c l\u00e0m', 'T\u00e0i kho\u1ea3n'];
-      bieuTuongTab = const [Icons.explore_outlined, Icons.search, Icons.person_outline];
+      nhanTab = const [
+        'Kh\u00e1m ph\u00e1',
+        'Vi\u1ec7c l\u00e0m',
+        'T\u00e0i kho\u1ea3n',
+      ];
+      bieuTuongTab = const [
+        Icons.explore_outlined,
+        Icons.search,
+        Icons.person_outline,
+      ];
       noiDung = switch (tab) {
         1 => cn.tin(),
         2 => taiKhoan(cn),
@@ -218,10 +233,18 @@ class _TrangChuState extends State<TrangChu> {
       };
     }
     return Scaffold(
-      body: SafeArea(child: KeyedSubtree(key: ValueKey('nguoi-dung-$tab-${u.nguoi?['loai']}'), child: noiDung)),
+      body: SafeArea(
+        child: KeyedSubtree(
+          key: ValueKey('nguoi-dung-$tab-${u.nguoi?['loai']}'),
+          child: noiDung,
+        ),
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: tab.clamp(0, nhanTab.length - 1) as int,
-        onDestinationSelected: (i) => setState(() => tab = i),
+        onDestinationSelected: (i) {
+          setState(() => tab = i);
+          if (u.ungVien) u.thuCapNhatTimViec();
+        },
         destinations: [
           for (var i = 0; i < nhanTab.length; i++)
             NavigationDestination(
@@ -287,11 +310,19 @@ class _TrangChuState extends State<TrangChu> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.rocket_launch_outlined, color: Colors.white, size: 28),
+            const Icon(
+              Icons.rocket_launch_outlined,
+              color: Colors.white,
+              size: 28,
+            ),
             const SizedBox(height: 14),
             const Text(
               'T\u00ecm \u0111\u00fang ng\u01b0\u1eddi cho v\u1ecb tr\u00ed c\u1ee7a b\u1ea1n',
-              style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+              ),
             ),
             const SizedBox(height: 6),
             const Text(
@@ -349,8 +380,16 @@ class _TrangChuState extends State<TrangChu> {
       const SizedBox(height: 10),
       muc('Giỏ hàng', Icons.shopping_cart_outlined, () => mo(cn.gio())),
       muc('Thành viên', Icons.groups_outlined, () => mo(cn.thanhVienCongTy())),
-      muc('\u0110\u01a1n mua v\u00e0 thanh to\u00e1n', Icons.receipt_long, () => mo(cn.don())),
-      muc('L\u1ecbch s\u1eed l\u01b0\u1ee3t \u0111\u0103ng', Icons.history, () => thucHien(context, cn.soLuot)),
+      muc(
+        '\u0110\u01a1n mua v\u00e0 thanh to\u00e1n',
+        Icons.receipt_long,
+        () => mo(cn.don()),
+      ),
+      muc(
+        'L\u1ecbch s\u1eed l\u01b0\u1ee3t \u0111\u0103ng',
+        Icons.history,
+        () => thucHien(context, cn.soLuot),
+      ),
     ],
   );
 
@@ -468,13 +507,21 @@ class _TrangChuState extends State<TrangChu> {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 6),
-              const Text('T\u1ea1o t\u00e0i kho\u1ea3n \u0111\u1ec3 qu\u1ea3n l\u00fd CV v\u00e0 theo d\u00f5i h\u1ed3 s\u01a1.'),
+              const Text(
+                'T\u1ea1o t\u00e0i kho\u1ea3n \u0111\u1ec3 qu\u1ea3n l\u00fd CV v\u00e0 theo d\u00f5i h\u1ed3 s\u01a1.',
+              ),
               const SizedBox(height: 14),
               Wrap(
                 spacing: 8,
                 children: [
-                  FilledButton(onPressed: dangKy, child: const Text('\u0110\u0103ng k\u00fd')), 
-                  TextButton(onPressed: dangNhap, child: const Text('\u0110\u0103ng nh\u1eadp')),
+                  FilledButton(
+                    onPressed: dangKy,
+                    child: const Text('\u0110\u0103ng k\u00fd'),
+                  ),
+                  TextButton(
+                    onPressed: dangNhap,
+                    child: const Text('\u0110\u0103ng nh\u1eadp'),
+                  ),
                 ],
               ),
             ],
@@ -483,7 +530,10 @@ class _TrangChuState extends State<TrangChu> {
       ],
       if (loi != null) ...[
         const SizedBox(height: 12),
-        Text(loi!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+        Text(
+          loi!,
+          style: TextStyle(color: Theme.of(context).colorScheme.error),
+        ),
       ],
     ],
   );
@@ -569,6 +619,26 @@ class _TrangChuState extends State<TrangChu> {
           ),
           const SizedBox(height: 20),
         ],
+        if (u.nhaTuyen) ...[
+          muc(
+            'Doanh nghiệp',
+            Icons.business_outlined,
+            () => mo(
+              KhongGianDoanhNghiep(
+                ung: u,
+                taiKhoan: () => taiKhoan(cn),
+                chiDoanhNghiep: true,
+              ),
+            ),
+          ),
+          if (u.nguoi?['doanhNghiepId'] != null)
+            muc(
+              'Nhân viên',
+              Icons.groups_outlined,
+              () => thucHien(context, cn.moNhanVienCongTy),
+            ),
+          const SizedBox(height: 16),
+        ],
         const Text(
           'Thông tin & bảo mật',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
@@ -647,10 +717,7 @@ class _TrangChuState extends State<TrangChu> {
           'Đăng xuất',
           Icons.logout,
           () => thucHien(context, () async {
-            if (await xacNhan(
-              context,
-              'Đăng xuất và xóa dữ liệu riêng đã lưu trên máy?',
-            )) {
+            if (await xacNhan(context, 'Bạn xác nhận đăng xuất?')) {
               await u.dangXuat();
             }
           }),
@@ -712,4 +779,93 @@ class _DanhMucTrangChuState extends State<DanhMucTrangChu> {
       );
     },
   );
+}
+
+class DonMuaQuanTri extends StatefulWidget {
+  final UngDung ung;
+  const DonMuaQuanTri({super.key, required this.ung});
+  @override
+  State<DonMuaQuanTri> createState() => _DonMuaQuanTriState();
+}
+
+class _DonMuaQuanTriState extends State<DonMuaQuanTri> {
+  Map<String, dynamic> so = {};
+  String? loi;
+  int lan = 0;
+  @override
+  void initState() {
+    super.initState();
+    widget.ung.addListener(capNhat);
+    tai();
+  }
+
+  @override
+  void dispose() {
+    widget.ung.removeListener(capNhat);
+    super.dispose();
+  }
+
+  void capNhat() {
+    if (!widget.ung.dangGui) tai();
+  }
+
+  Future<void> tai() async {
+    final ma = ++lan;
+    try {
+      final d = await widget.ung.danhSach('quan-tri/don-hang/so-luong');
+      if (mounted && ma == lan)
+        setState(() {
+          so = Map<String, dynamic>.from(d);
+          loi = null;
+        });
+    } catch (e) {
+      if (mounted && ma == lan) setState(() => loi = e.toString());
+    }
+  }
+
+  @override
+  Widget build(BuildContext c) {
+    final cn = ChucNang(c, widget.ung);
+    return DefaultTabController(
+      length: 3,
+      child: Column(
+        children: [
+          Row(
+            children: [
+              const SizedBox(width: 16),
+              const Expanded(
+                child: Text(
+                  'Đơn mua',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+                ),
+              ),
+              IconButton(
+                onPressed: tai,
+                tooltip: 'Cập nhật số lượng',
+                icon: const Icon(Icons.refresh),
+              ),
+            ],
+          ),
+          if (loi != null) Text(loi!),
+          TabBar(
+            isScrollable: true,
+            tabs: [
+              Tab(text: 'Đã duyệt (${so['daDuyet'] ?? '…'})'),
+              Tab(text: 'Chờ duyệt (${so['choDuyet'] ?? '…'})'),
+              Tab(text: 'Từ chối (${so['tuChoi'] ?? '…'})'),
+            ],
+          ),
+          Expanded(
+            child: TabBarView(
+              children: [
+                cn.don(boLoc: '?trangThai=DaThanhToan'),
+                cn.don(boLoc: '?trangThai=ChoThanhToan'),
+                cn.don(boLoc: '?trangThai=TuChoi'),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

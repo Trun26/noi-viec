@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:http/http.dart' as http;
+
 import 'kho_luu.dart';
 
 class LoiApi implements Exception {
@@ -52,15 +54,22 @@ class MayChu {
   }
 
   dynamic giaiMa(int ma, String nd) {
+    if (ma >= 200 && ma < 300 && nd.trim().isEmpty) return null;
     dynamic kq;
     try {
       kq = jsonDecode(nd);
     } catch (_) {
       if (ma == 404) {
-        throw LoiApi('Không tìm thấy chức năng trên máy chủ (404). Hãy khởi động lại máy chủ bằng mã mới.', ma);
+        throw LoiApi(
+          'Không tìm thấy chức năng trên máy chủ (404). Hãy khởi động lại máy chủ bằng mã mới.',
+          ma,
+        );
       }
       if (ma >= 500) {
-        throw LoiApi('Máy chủ gặp lỗi ($ma). Kiểm tra cửa sổ chạy máy chủ.', ma);
+        throw LoiApi(
+          'Máy chủ gặp lỗi ($ma). Kiểm tra cửa sổ chạy máy chủ.',
+          ma,
+        );
       }
       throw LoiApi('Máy chủ trả dữ liệu không hợp lệ (HTTP $ma).', ma);
     }

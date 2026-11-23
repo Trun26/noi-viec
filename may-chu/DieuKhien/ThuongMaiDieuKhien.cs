@@ -220,7 +220,21 @@ public class ThuongMaiDieuKhien(KhoDuLieu db, PhienLamViec phien, IConfiguration
     {
         var tk = await phien.Nguoi(Request);
         var ds = db.DonHang.Where(x => tk.VaiTro == "QuanTri" || x.DoanhNghiepId == tk.DoanhNghiepId && tk.Loai == "NhaTuyenDung");
-        return await Trang(ds.Where(x => (q == null || x.Ma.Contains(q)) && (trangThai == null || x.TrangThai == trangThai) && (tuNgay == null || x.TaoLuc >= tuNgay) && (denNgay == null || x.TaoLuc < denNgay)).OrderByDescending(x => x.TaoLuc), trang, 20);
+        return await Trang(ds.Where(x => (q == null || x.Ma.Contains(q)) && (trangThai == null || x.TrangThai == trangThai) && (tuNgay == null || x.TaoLuc >= tuNgay) && (denNgay == null || x.TaoLuc < denNgay)).OrderByDescending(x => x.TaoLuc).Select(x => new {
+            x.Id, x.TaoLuc, x.Ma, x.DoanhNghiepId, x.NguoiMuaId,
+            x.TrangThai, x.TongTien, x.TongLuot, x.XacNhanLuc,
+            TenDoanhNghiep = db.DoanhNghiep.Where(d => d.Id == x.DoanhNghiepId).Select(d => d.Ten).FirstOrDefault()
+        }), trang, 20);
+    }
+    [HttpGet("quan-tri/don-hang/so-luong")]
+    public async Task<object> SoLuongDon()
+    {
+        await phien.Nguoi(Request, "QuanTri");
+        return new {
+            daDuyet = await db.DonHang.CountAsync(x => x.TrangThai == "DaThanhToan"),
+            choDuyet = await db.DonHang.CountAsync(x => x.TrangThai == "ChoThanhToan"),
+            tuChoi = await db.DonHang.CountAsync(x => x.TrangThai == "TuChoi")
+        };
     }
     [HttpGet("don-hang/{id:guid}")]
     public async Task<object> ChiTietDon(Guid id)
@@ -232,6 +246,7 @@ public class ThuongMaiDieuKhien(KhoDuLieu db, PhienLamViec phien, IConfiguration
     public async Task<object> TrangThaiDon(Guid id, DoiTrangThai d)
     {
         var tk = await phien.Nguoi(Request);
-        return await phien.GiaoDich<object>(async () => { var don = await db.DonHang.FindAsync(id) ?? throw new LoiNghiepVu("Không tìm thấy đơn.", 404); KiemTra(tk.VaiTro == "QuanTri" || tk.Loai == "NhaTuyenDung" && tk.DoanhNghiepId == don.DoanhNghiepId, "Bạn không có quyền.", 403); if (don.TrangThai == d.TrangThai) return don; KiemTra(don.TrangThai == "ChoThanhToan", "Đơn đã kết thúc, không thể thay đổi.", 409); KiemTra(d.TrangThai is "DaThanhToan" or "DaHuy", "Trạng thái không hợp lệ."); if (d.TrangThai == "DaThanhToan") { KiemTra(tk.VaiTro == "QuanTri", "Chỉ quản trị được xác nhận.", 403); KiemTra(cauHinh.GetValue<bool>("TrinhDien"), "Chế độ trình diễn chưa được bật."); var dn = await db.DoanhNghiep.FindAsync(don.DoanhNghiepId) ?? throw new LoiNghiepVu("Không tìm thấy doanh nghiệp."); KiemTra(dn.TrangThai == "DaDuyet", "Doanh nghiệp không đủ điều kiện nhận lượt."); phien.GhiLuot(dn, tk.Id, don.Id, "MuaLuot", don.TongLuot, 0, 0); don.XacNhanLuc = DateTime.UtcNow; don.NguoiXacNhanId = tk.Id; } don.TrangThai = d.TrangThai; phien.Bao(don.NguoiMuaId, "Đơn " + don.Ma + ": " + (d.TrangThai == "DaThanhToan" ? "đã xác nhận thanh toán (trình diễn)" : "đã hủy"), "don-hang/" + id); return don; });
+        return await phien.GiaoDich<object>(async () => { var don = await db.DonHang.FindAsync(id) ?? throw new LoiNghiepVu("Không tìm thấy đơn.", 404); KiemTra(tk.VaiTro == "QuanTri" || tk.Loai == "NhaTuyenDung" && tk.DoanhNghiepId == don.DoanhNghiepId, "Bạn không có quyền.", 403); if (don.TrangThai == d.TrangThai) return don; KiemTra(don.TrangThai == "ChoThanhToan", "Đơn đã kết thúc, không thể thay đổi.", 409); KiemTra(d.TrangThai is "DaThanhToan" or "DaHuy" or "TuChoi", "Trạng thái không hợp lệ."); if (d.TrangThai == "TuChoi") { KiemTra(tk.VaiTro == "QuanTri", "Chỉ quản trị được từ chối đơn.", 403); KiemTra(!string.IsNullOrWhiteSpace(d.LyDo), "Nhập lý do từ chối."); } if (d.TrangThai == "DaThanhToan") { KiemTra(tk.VaiTro == "QuanTri", "Chỉ quản trị được xác nhận.", 403); KiemTra(cauHinh.GetValue<bool>("TrinhDien"), "Chế độ trình diễn chưa được bật."); var dn = await db.DoanhNghiep.FindAsync(don.DoanhNghiepId) ?? throw new LoiNghiepVu("Không tìm thấy doanh nghiệp."); KiemTra(dn.TrangThai == "DaDuyet", "Doanh nghiệp không đủ điều kiện nhận lượt."); phien.GhiLuot(dn, tk.Id, don.Id, "MuaLuot", don.TongLuot, 0, 0); don.XacNhanLuc = DateTime.UtcNow; don.NguoiXacNhanId = tk.Id; } don.TrangThai = d.TrangThai; phien.Bao(don.NguoiMuaId, "Đơn " + don.Ma + ": " + (d.TrangThai == "DaThanhToan" ? "đã xác nhận thanh toán (trình diễn)" : d.TrangThai == "TuChoi" ? "bị từ chối: " + d.LyDo : "đã hủy"), "don-hang/" + id); return don; });
     }
 }
+

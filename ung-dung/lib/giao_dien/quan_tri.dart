@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../nghiep_vu/ung_dung.dart';
 import 'thanh_phan.dart';
@@ -243,10 +243,10 @@ String vaiTroNguoi(Map<String, dynamic> d) => d['vaiTro'] == 'QuanTri'
     : d['loai'] == 'UngVien'
     ? 'Ứng viên'
     : d['doanhNghiepId'] == null
-    ? 'Nhà tuyển dụng chưa có doanh nghiệp'
+    ? 'Tuyển dụng'
     : d['phuTrach'] == true
-    ? 'Người phụ trách doanh nghiệp'
-    : 'Nhân viên doanh nghiệp';
+    ? 'Phụ trách'
+    : 'Nhân viên';
 
 class _NguoiDungQuanTriState extends State<NguoiDungQuanTri> {
   final tim = TextEditingController();
@@ -321,7 +321,6 @@ class _NguoiDungQuanTriState extends State<NguoiDungQuanTri> {
         d['loai'] == 'NhaTuyenDung' &&
             d['doanhNghiepId'] != null &&
             d['vaiTro'] != 'QuanTri',
-      'Khach' => false,
       _ => true,
     };
   }
@@ -414,9 +413,8 @@ class _NguoiDungQuanTriState extends State<NguoiDungQuanTri> {
                 child: Row(
                   children: [
                     for (final x in {
-                      'Khach': 'Khách',
                       'UngVien': 'Ứng viên',
-                      'ChuaGan': 'Nhà tuyển dụng',
+                      'ChuaGan': 'Tuyển dụng',
                       'NhanVien': 'Doanh nghiệp',
                       'QuanTri': 'Quản trị',
                     }.entries)
@@ -470,15 +468,6 @@ class _NguoiDungQuanTriState extends State<NguoiDungQuanTri> {
               );
             if (s.connectionState != ConnectionState.done)
               return const Center(child: CircularProgressIndicator());
-            if (nhom == 'Khach')
-              return const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Text(
-                    'Khách chưa đăng nhập không có tài khoản để hiển thị hoặc chỉnh sửa.',
-                  ),
-                ),
-              );
             final ds = nguoi.where(khop).toList();
             return RefreshIndicator(
               onRefresh: () async {
@@ -490,15 +479,20 @@ class _NguoiDungQuanTriState extends State<NguoiDungQuanTri> {
                 padding: const EdgeInsets.fromLTRB(12, 0, 12, 20),
                 children: [
                   if (nhom == 'NhanVien')
-                    for (final dn in doanhNghiep.where(
-                      (dn) =>
-                          tim.text.trim().isEmpty ||
-                          ds.any((x) => x['doanhNghiepId'] == dn['id']) ||
-                          dn['ten'].toString().toLowerCase().contains(
-                            tim.text.trim().toLowerCase(),
-                          ),
-                    ))
-                      Card(
+                    _NguoiPhanTrang(
+                      key: ValueKey('doanh-nghiep-${tim.text}'),
+                      donVi: 'doanh nghiệp',
+                      ds: doanhNghiep
+                          .where(
+                            (dn) =>
+                                tim.text.trim().isEmpty ||
+                                ds.any((x) => x['doanhNghiepId'] == dn['id']) ||
+                                dn['ten'].toString().toLowerCase().contains(
+                                  tim.text.trim().toLowerCase(),
+                                ),
+                          )
+                          .toList(),
+                      ve: (dn) => Card(
                         child: ExpansionTile(
                           key: PageStorageKey('dn-${dn['id']}'),
                           title: Text(
@@ -517,21 +511,23 @@ class _NguoiDungQuanTriState extends State<NguoiDungQuanTri> {
                             if (!ds.any((d) => d['doanhNghiepId'] == dn['id']))
                               const Padding(
                                 padding: EdgeInsets.all(16),
-                                child: Text(
-                                  'Chưa có nhân viên phù hợp.',
-                                  style: TextStyle(fontSize: 16),
-                                ),
+                                child: Text('Chưa có nhân viên phù hợp.'),
                               ),
                           ],
                         ),
-                      )
+                      ),
+                    )
                   else ...[
                     if (ds.isEmpty)
                       const Padding(
                         padding: EdgeInsets.all(24),
                         child: Text('Không có người dùng phù hợp.'),
                       ),
-                    for (final d in ds) theNguoi(d),
+                    _NguoiPhanTrang(
+                      key: ValueKey('$nhom-${tim.text}'),
+                      ds: ds,
+                      ve: theNguoi,
+                    ),
                   ],
                 ],
               ),
@@ -749,7 +745,7 @@ class _HopNguoiDungState extends State<HopNguoiDung> {
                                 loai,
                                 {
                                   'UngVien': 'Ứng viên',
-                                  'NhaTuyenDung': 'Nhà tuyển dụng',
+                                  'NhaTuyenDung': 'Tuyển dụng',
                                 },
                                 (v) {
                                   loai = v;
@@ -861,7 +857,8 @@ class _HopNguoiDungState extends State<HopNguoiDung> {
                                   email.text = widget.nguoi!['email'];
                                   loai = widget.nguoi!['loai'];
                                   quyen = widget.nguoi!['vaiTro'];
-                                  doanhNghiepId = widget.nguoi!['doanhNghiepId'] ?? '';
+                                  doanhNghiepId =
+                                      widget.nguoi!['doanhNghiepId'] ?? '';
                                   khoa = widget.nguoi!['biKhoa'];
                                   matKhau.clear();
                                   sua = false;
@@ -891,41 +888,93 @@ class DanhMucQuanTri extends StatelessWidget {
   @override
   Widget build(BuildContext c) {
     final cn = ChucNang(c, ung);
-    return ListView(
-      padding: const EdgeInsets.all(20),
+    return DefaultTabController(
+      length: 3,
+      child: Column(
+        children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(20, 16, 20, 8),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Danh mục',
+                style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800),
+              ),
+            ),
+          ),
+          const TabBar(
+            tabs: [
+              Tab(text: 'Gói đăng tin'),
+              Tab(text: 'Dịch vụ'),
+              Tab(text: 'Ngành nghề'),
+            ],
+          ),
+          Expanded(
+            child: TabBarView(
+              children: [
+                cn.goi(quanLy: true),
+                cn.danhMuc('DichVu'),
+                cn.danhMuc('NganhNghe'),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NguoiPhanTrang extends StatefulWidget {
+  final List<Map<String, dynamic>> ds;
+  final Widget Function(Map<String, dynamic>) ve;
+  final String donVi;
+  const _NguoiPhanTrang({
+    super.key,
+    required this.ds,
+    required this.ve,
+    this.donVi = 'người',
+  });
+  @override
+  State<_NguoiPhanTrang> createState() => _NguoiPhanTrangState();
+}
+
+class _NguoiPhanTrangState extends State<_NguoiPhanTrang> {
+  int trang = 0;
+  @override
+  Widget build(BuildContext c) {
+    final tongTrang = (widget.ds.length / 20).ceil();
+    final hienTai = tongTrang == 0 ? 0 : trang.clamp(0, tongTrang - 1).toInt();
+    final ds = widget.ds.skip(hienTai * 20).take(20);
+    return Column(
       children: [
-        const Text(
-          'Danh mục',
-          style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800),
-        ),
-        const SizedBox(height: 16),
-        for (final x in [
-          (
-            'Ngành nghề',
-            'Phân loại tin tuyển dụng: công nghệ, kế toán…',
-            Icons.account_tree_outlined,
-            () => cn.danhMuc('NganhNghe'),
-          ),
-          (
-            'Dịch vụ',
-            'Nhóm các gói lượt đăng tin để tìm kiếm và lọc.',
-            Icons.category_outlined,
-            () => cn.danhMuc('DichVu'),
-          ),
-          (
-            'Gói đăng tin',
-            'Quản lý tên gói, giá, ảnh và số lượt.',
-            Icons.inventory_2_outlined,
-            () => cn.goi(quanLy: true),
-          ),
-        ])
-          Card(
-            child: ListTile(
-              leading: Icon(x.$3),
-              title: Text(x.$1),
-              subtitle: Text(x.$2),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => cn.mo(x.$4()),
+        for (final d in ds) widget.ve(d),
+        if (widget.ds.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  tooltip: 'Trang trước',
+                  onPressed: hienTai > 0
+                      ? () => setState(() => trang = hienTai - 1)
+                      : null,
+                  icon: const Icon(Icons.chevron_left),
+                ),
+                Flexible(
+                  child: Text(
+                    'Trang ${hienTai + 1}/$tongTrang • ${widget.ds.length} ${widget.donVi}',
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Trang sau',
+                  onPressed: hienTai + 1 < tongTrang
+                      ? () => setState(() => trang = hienTai + 1)
+                      : null,
+                  icon: const Icon(Icons.chevron_right),
+                ),
+              ],
             ),
           ),
       ],

@@ -12,16 +12,15 @@ String ngay(dynamic s) {
   final d = DateTime.tryParse(s?.toString() ?? '');
   return d == null
       ? ''
-      : DateFormat(
-          'dd/MM/yyyy HH:mm',
-        ).format(d.toUtc().add(const Duration(hours: 7)));
+      : DateFormat('dd/MM/yyyy HH:mm')
+            .format(d.toUtc().add(const Duration(hours: 7)));
 }
 
 const nhan = {
   'ThanhVien': 'Thành viên',
   'QuanTri': 'Quản trị viên',
   'UngVien': 'Ứng viên',
-  'NhaTuyenDung': 'Nhà tuyển dụng',
+  'NhaTuyenDung': 'Tuyển dụng',
   'ChoDuyet': 'Chờ duyệt',
   'DaDuyet': 'Đã duyệt',
   'BiTuChoi': 'Bị từ chối',
@@ -53,8 +52,11 @@ const nhan = {
   'TraLuotRut': 'Trả lượt khi rút',
 };
 String tenNhan(dynamic v) => nhan[v] ?? v?.toString() ?? '';
-void bao(BuildContext c, Object e) =>
-    ScaffoldMessenger.of(c).showSnackBar(SnackBar(content: Text(e.toString())));
+void bao(BuildContext c, Object e) => ScaffoldMessenger.of(c).showSnackBar(
+  SnackBar(
+    content: Text(e.toString().replaceFirst(RegExp(r'^Exception: '), '')),
+  ),
+);
 Future<bool> xacNhan(BuildContext c, String nd) async =>
     await showDialog<bool>(
       context: c,
@@ -140,13 +142,22 @@ class _ManDanhSachState extends State<ManDanhSach> {
   @override
   void initState() {
     super.initState();
+    widget.ung.addListener(capNhatUngDung);
     tim.text = widget.tuKhoaBanDau ?? '';
     doc();
+  }
+
+  void capNhatUngDung() {
+    if (mounted) setState(() {});
   }
 
   @override
   void didUpdateWidget(covariant ManDanhSach old) {
     super.didUpdateWidget(old);
+    if (old.ung != widget.ung) {
+      old.ung.removeListener(capNhatUngDung);
+      widget.ung.addListener(capNhatUngDung);
+    }
     if (old.duongDan != widget.duongDan || old.thamSo != widget.thamSo) {
       trang = 1;
       tim.clear();
@@ -156,6 +167,7 @@ class _ManDanhSachState extends State<ManDanhSach> {
 
   @override
   void dispose() {
+    widget.ung.removeListener(capNhatUngDung);
     tim.dispose();
     super.dispose();
   }
@@ -355,9 +367,8 @@ class TheNoiDung extends StatelessWidget {
                 Expanded(
                   child: Text(
                     tieuDe,
-                    style: Theme.of(c).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: Theme.of(c).textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w700),
                   ),
                 ),
                 if (trangThai != null)
@@ -423,9 +434,8 @@ class TheGoiDangTin extends StatelessWidget {
                         tieuDe,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(c).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
+                        style: Theme.of(c).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w800),
                       ),
                       const SizedBox(height: 6),
                       Text(
@@ -514,9 +524,8 @@ class TheDongGioHang extends StatelessWidget {
               Expanded(
                 child: Text(
                   tieuDe,
-                  style: Theme.of(c).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: Theme.of(c).textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w800),
                 ),
               ),
               const Icon(Icons.shopping_bag_outlined, color: Color(0xff6250d8)),
@@ -550,13 +559,14 @@ class TheDongGioHang extends StatelessWidget {
 }
 
 class TheDonMuaLuot extends StatelessWidget {
-  final String ma, taoLuc, trangThai, tongTien;
+  final String ma, taoLuc, trangThai, tongTien, tenDoanhNghiep;
   final int tongLuot;
   final VoidCallback mo;
   final List<Widget> hanhDong;
   const TheDonMuaLuot({
     super.key,
     required this.ma,
+    this.tenDoanhNghiep = '',
     required this.taoLuc,
     required this.trangThai,
     required this.tongTien,
@@ -585,9 +595,8 @@ class TheDonMuaLuot extends StatelessWidget {
                 Expanded(
                   child: Text(
                     ma,
-                    style: Theme.of(c).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                    style: Theme.of(c).textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w800),
                   ),
                 ),
                 NhanTrangThai(trangThai),
@@ -686,9 +695,8 @@ class TheHoSoUngTuyen extends StatelessWidget {
                     children: [
                       Text(
                         tieuDe,
-                        style: Theme.of(c).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
+                        style: Theme.of(c).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w800),
                       ),
                       const SizedBox(height: 5),
                       Text(
@@ -761,9 +769,8 @@ class TheCvCaNhan extends StatelessWidget {
                       ten,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(c).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                      style: Theme.of(c).textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w800),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -811,9 +818,8 @@ class NhomTacVuQuanTri extends StatelessWidget {
         children: [
           Text(
             tieuDe,
-            style: Theme.of(
-              c,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            style: Theme.of(c).textTheme.titleMedium
+                ?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 4),
           Text(moTa, style: const TextStyle(color: Color(0xff687385))),

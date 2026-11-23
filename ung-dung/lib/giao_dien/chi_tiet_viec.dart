@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../nghiep_vu/ung_dung.dart';
 import 'man_xac_thuc.dart';
 import 'thanh_phan.dart';
@@ -15,7 +16,9 @@ class ChiTietViec extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext c) {
+  Widget build(BuildContext c) =>
+      ListenableBuilder(listenable: ung, builder: (c, _) => noiDung(c));
+  Widget noiDung(BuildContext c) {
     final dong = DateTime.tryParse(d['hanNhan']?.toString() ?? '');
     final hetHan = dong != null && dong.isBefore(DateTime.now());
     final dangTuyen = d['trangThai'] == 'DangTuyen' && !hetHan;
@@ -38,7 +41,9 @@ class ChiTietViec extends StatelessWidget {
                     if (!dangTuyen)
                       const Padding(
                         padding: EdgeInsets.only(bottom: 8),
-                        child: Text('Tin tuy\u1ec3n d\u1ee5ng hi\u1ec7n kh\u00f4ng nh\u1eadn h\u1ed3 s\u01a1.'),
+                        child: Text(
+                          'Tin tuy\u1ec3n d\u1ee5ng hi\u1ec7n kh\u00f4ng nh\u1eadn h\u1ed3 s\u01a1.',
+                        ),
                       ),
                     if (dangTuyen && ung.nguoi == null)
                       SizedBox(
@@ -48,14 +53,28 @@ class ChiTietViec extends StatelessWidget {
                           onPressed: () async {
                             await Navigator.push(
                               c,
-                              MaterialPageRoute(builder: (_) => ManXacThuc(ung: ung)),
+                              MaterialPageRoute(
+                                builder: (_) => ManXacThuc(ung: ung),
+                              ),
                             );
-                            if (c.mounted && ung.nguoi != null) Navigator.pop(c);
+                            if (c.mounted && ung.nguoi != null)
+                              Navigator.pop(c);
                           },
-                          child: const Text('\u0110\u0103ng nh\u1eadp \u0111\u1ec3 \u1ee9ng tuy\u1ec3n'),
+                          child: const Text(
+                            '\u0110\u0103ng nh\u1eadp \u0111\u1ec3 \u1ee9ng tuy\u1ec3n',
+                          ),
                         ),
                       ),
-                    if (dangTuyen && ung.ungVien && hanhDong.isNotEmpty)
+                    if (ung.ungVien &&
+                        ung.tinDaGui.contains(d['id'].toString()))
+                      const FilledButton(
+                        onPressed: null,
+                        child: Text('Đã gửi'),
+                      ),
+                    if (dangTuyen &&
+                        ung.ungVien &&
+                        !ung.tinDaGui.contains(d['id'].toString()) &&
+                        hanhDong.isNotEmpty)
                       Container(
                         width: double.infinity,
                         decoration: BoxDecoration(
@@ -88,24 +107,37 @@ class ChiTietViec extends StatelessWidget {
                     color: const Color(0xffeee9ff),
                     borderRadius: BorderRadius.circular(15),
                   ),
-                  child: const Icon(Icons.business_center_outlined, size: 30, color: Color(0xff6250d8)),
+                  child: const Icon(
+                    Icons.business_center_outlined,
+                    size: 30,
+                    color: Color(0xff6250d8),
+                  ),
                 ),
                 const SizedBox(height: 18),
                 Text(
                   d['tieuDe'] ?? '',
-                  style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w800, height: 1.3),
+                  style: const TextStyle(
+                    fontSize: 25,
+                    fontWeight: FontWeight.w800,
+                    height: 1.3,
+                  ),
                 ),
                 const SizedBox(height: 10),
                 const SizedBox(height: 14),
                 Text(
                   luong,
-                  style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: Color(0xff6250d8)),
+                  style: const TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xff6250d8),
+                  ),
                 ),
                 const SizedBox(height: 18),
                 for (final e in {
                   Icons.location_on_outlined: d['diaDiem'],
                   Icons.schedule: tenNhan(d['hinhThuc']),
-                  Icons.event_outlined: 'H\u1ea1n nh\u1eadn: ${ngay(d['hanNhan'])}',
+                  Icons.event_outlined:
+                      'H\u1ea1n nh\u1eadn: ${ngay(d['hanNhan'])}',
                 }.entries)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 10),
@@ -114,7 +146,13 @@ class ChiTietViec extends StatelessWidget {
                       children: [
                         Icon(e.key, size: 19, color: const Color(0xff8b829d)),
                         const SizedBox(width: 10),
-                        Expanded(child: Text(e.value?.toString() ?? 'Ch\u01b0a c\u1eadp nh\u1eadt', style: const TextStyle(color: Color(0xff716a80)))),
+                        Expanded(
+                          child: Text(
+                            e.value?.toString() ??
+                                'Ch\u01b0a c\u1eadp nh\u1eadt',
+                            style: const TextStyle(color: Color(0xff716a80)),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -135,22 +173,43 @@ class ChiTietViec extends StatelessWidget {
                 children: [
                   Container(
                     padding: const EdgeInsets.all(11),
-                    decoration: BoxDecoration(color: const Color(0xfff0ebff), borderRadius: BorderRadius.circular(13)),
-                    child: const Icon(Icons.business_outlined, color: Color(0xff6250d8)),
+                    decoration: BoxDecoration(
+                      color: const Color(0xfff0ebff),
+                      borderRadius: BorderRadius.circular(13),
+                    ),
+                    child: const Icon(
+                      Icons.business_outlined,
+                      color: Color(0xff6250d8),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(d['tenDoanhNghiep'], style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                        Text(
+                          d['tenDoanhNghiep'],
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 16,
+                          ),
+                        ),
                         if (d['diaChiDoanhNghiep'] != null) ...[
                           const SizedBox(height: 4),
-                          Text(d['diaChiDoanhNghiep'], style: const TextStyle(color: Color(0xff716a80))),
+                          Text(
+                            d['diaChiDoanhNghiep'],
+                            style: const TextStyle(color: Color(0xff716a80)),
+                          ),
                         ],
                         if (d['gioiThieuDoanhNghiep'] != null) ...[
                           const SizedBox(height: 8),
-                          Text(d['gioiThieuDoanhNghiep'], style: const TextStyle(height: 1.45, color: Color(0xff716a80))),
+                          Text(
+                            d['gioiThieuDoanhNghiep'],
+                            style: const TextStyle(
+                              height: 1.45,
+                              color: Color(0xff716a80),
+                            ),
+                          ),
                         ],
                       ],
                     ),
@@ -166,7 +225,10 @@ class ChiTietViec extends StatelessWidget {
             children: [
               _chiSo('Kinh nghi\u1ec7m', d['kinhNghiem']),
               _chiSo('Tr\u00ecnh \u0111\u1ed9', d['trinhDo']),
-              _chiSo('S\u1ed1 l\u01b0\u1ee3ng', '${d['soNguoi'] ?? '\u2014'} ng\u01b0\u1eddi'),
+              _chiSo(
+                'S\u1ed1 l\u01b0\u1ee3ng',
+                '${d['soNguoi'] ?? '\u2014'} ng\u01b0\u1eddi',
+              ),
             ],
           ),
           for (final e in {
@@ -175,9 +237,15 @@ class ChiTietViec extends StatelessWidget {
             'quyenLoi': 'Quy\u1ec1n l\u1ee3i c\u1ee7a b\u1ea1n',
           }.entries) ...[
             const SizedBox(height: 26),
-            Text(e.value, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
+            Text(
+              e.value,
+              style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
+            ),
             const SizedBox(height: 10),
-            SelectableText(d[e.key]?.toString() ?? 'Ch\u01b0a c\u1eadp nh\u1eadt', style: const TextStyle(height: 1.7, color: Color(0xff716a80))),
+            SelectableText(
+              d[e.key]?.toString() ?? 'Ch\u01b0a c\u1eadp nh\u1eadt',
+              style: const TextStyle(height: 1.7, color: Color(0xff716a80)),
+            ),
           ],
           const SizedBox(height: 24),
           ...hanhDong.skip(ung.ungVien ? 1 : 0),
@@ -189,14 +257,22 @@ class ChiTietViec extends StatelessWidget {
   Widget _chiSo(String ten, dynamic giaTri) => Container(
     width: 145,
     padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+    ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(ten, style: const TextStyle(color: Color(0xff8b829d), fontSize: 12)),
+        Text(
+          ten,
+          style: const TextStyle(color: Color(0xff8b829d), fontSize: 12),
+        ),
         const SizedBox(height: 6),
         Text(
-          giaTri?.toString().isNotEmpty == true ? giaTri.toString() : 'Ch\u01b0a c\u1eadp nh\u1eadt',
+          giaTri?.toString().isNotEmpty == true
+              ? giaTri.toString()
+              : 'Ch\u01b0a c\u1eadp nh\u1eadt',
           style: const TextStyle(fontWeight: FontWeight.w700),
         ),
       ],

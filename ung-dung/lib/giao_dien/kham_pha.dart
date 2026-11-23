@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../nghiep_vu/ung_dung.dart';
 import 'chuc_nang.dart';
 import 'thanh_phan.dart';
@@ -14,9 +15,12 @@ class KhamPha extends StatefulWidget {
 class _KhamPhaState extends State<KhamPha> {
   final tim = TextEditingController();
   late Future<dynamic> viec = widget.ung.danhSach('tin-tuyen-dung?trang=1');
-  late Future<dynamic> danhMuc = widget.ung.danhSach('danh-muc?loai=NganhNghe&trang=1');
+  late Future<dynamic> danhMuc = widget.ung.danhSach(
+    'danh-muc?loai=NganhNghe&trang=1',
+  );
   String mucLuong(dynamic min, dynamic max) {
-    if (min == null && max == null) return 'L\u01b0\u01a1ng th\u1ecfa thu\u1eadn';
+    if (min == null && max == null)
+      return 'L\u01b0\u01a1ng th\u1ecfa thu\u1eadn';
     if (min == null) return '\u0110\u1ebfn ${tien(max)}';
     if (max == null) return 'T\u1eeb ${tien(min)}';
     return '${tien(min)} \u2013 ${tien(max)}';
@@ -39,7 +43,9 @@ class _KhamPhaState extends State<KhamPha> {
     future: danhMuc,
     builder: (c, s) {
       if (!s.hasData || s.hasError) return const SizedBox.shrink();
-      final ds = (s.data['duLieu'] as List).where((d) => d['hoatDong'] != false).take(8);
+      final ds = (s.data['duLieu'] as List)
+          .where((d) => d['hoatDong'] != false)
+          .take(8);
       if (ds.isEmpty) return const SizedBox.shrink();
       return Wrap(
         spacing: 8,
@@ -54,9 +60,10 @@ class _KhamPhaState extends State<KhamPha> {
               onPressed: () => Navigator.push(
                 c,
                 MaterialPageRoute(
-                  builder: (_) => ChucNang(c, widget.ung).tin(
-                    loc: '&nganhId=${Uri.encodeComponent(d['id'])}',
-                  ),
+                  builder: (_) => ChucNang(
+                    c,
+                    widget.ung,
+                  ).tin(loc: '&nganhId=${Uri.encodeComponent(d['id'])}'),
                 ),
               ),
             ),
@@ -97,14 +104,23 @@ class _KhamPhaState extends State<KhamPha> {
       const SizedBox(height: 18),
       const Text(
         'T\u1eeb kh\u00f3a ph\u1ed5 bi\u1ebfn',
-        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xff716a80)),
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+          color: Color(0xff716a80),
+        ),
       ),
       const SizedBox(height: 8),
       Wrap(
         spacing: 8,
         runSpacing: 8,
         children: [
-          for (final tuKhoa in ['Flutter', '.NET', 'Marketing', 'K\u1ebf to\u00e1n'])
+          for (final tuKhoa in [
+            'Flutter',
+            '.NET',
+            'Marketing',
+            'K\u1ebf to\u00e1n',
+          ])
             ActionChip(
               label: Text(tuKhoa),
               backgroundColor: const Color(0xfff2efff),
@@ -293,21 +309,35 @@ class _KhamPhaState extends State<KhamPha> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      d['tieuDe'] ?? 'C\u01a1 h\u1ed9i vi\u1ec7c l\u00e0m',
+                                      d['tieuDe'] ??
+                                          'C\u01a1 h\u1ed9i vi\u1ec7c l\u00e0m',
                                       maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, height: 1.35),
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                        height: 1.35,
+                                      ),
                                     ),
                                     const SizedBox(height: 5),
                                     Text(
-                                      d['tenDoanhNghiep'] ?? 'Nh\u00e0 tuy\u1ec3n d\u1ee5ng',
+                                      d['tenDoanhNghiep'] ??
+                                          'Nh\u00e0 tuy\u1ec3n d\u1ee5ng',
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(color: Color(0xff716a80), fontSize: 13),
+                                      style: const TextStyle(
+                                        color: Color(0xff716a80),
+                                        fontSize: 13,
+                                      ),
                                     ),
                                   ],
                                 ),
                               ),
+                              if (widget.ung.ungVien &&
+                                  widget.ung.tinDaGui.contains(
+                                    d['id'].toString(),
+                                  ))
+                                const Chip(label: Text('Đã gửi')),
                               const Icon(
                                 Icons.arrow_outward,
                                 size: 18,

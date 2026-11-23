@@ -12,34 +12,39 @@ public static class TaoBoMauNghiemThu
         PhienLamViec.KiemTra(matKhau.Length is >= 12 and <= 128, "Mật khẩu mẫu cần 12–128 ký tự.");
         await db.Database.EnsureCreatedAsync();
         await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
-        if (await db.DoanhNghiep.AnyAsync(x => x.MaSoThue == "MAU20-01"))
+        if (await db.DoanhNghiep.AnyAsync(x => x.MaSoThue == "MAUMOI-01"))
         {
             Console.WriteLine("Bộ mẫu đã tồn tại. Không tạo trùng hoặc đặt lại mật khẩu.");
             return;
         }
         PhienLamViec.KiemTra(!await db.DoanhNghiep.AnyAsync() && !await db.DonHang.AnyAsync() && !await db.Tin.AnyAsync() && !await db.TaiKhoan.AnyAsync(),
-            "Chỉ tạo bộ mẫu trong cơ sở dữ liệu trống. Dùng Database=mobi_mau20; không xóa dữ liệu hiện có.");
-        var qt = new TaiKhoan { Email = "quantri@mau20.example", HoTen = "Quản trị bộ mẫu", VaiTro = "QuanTri", Loai = "QuanTri" };
+            "Chỉ tạo bộ mẫu trong cơ sở dữ liệu trống. Dùng Database=mobi_mau_moi; không xóa dữ liệu hiện có.");
+        var qt = new TaiKhoan { Email = "quantri@maumoi.example", HoTen = "Quản trị bộ mẫu", VaiTro = "QuanTri", Loai = "QuanTri" };
         qt.MatKhauBam = bam.HashPassword(qt, matKhau); db.Add(qt);
         var ten = new[] { "Nguyễn Minh Anh", "Trần Hoàng Nam", "Lê Thu Hà", "Phạm Đức Huy", "Võ Ngọc Mai", "Đặng Quốc Bảo", "Bùi Thảo Vy", "Đỗ Gia Hân", "Hồ Tuấn Kiệt", "Ngô Khánh Linh", "Dương Nhật Minh", "Lý Phương Anh", "Mai Thanh Tùng", "Đinh Bảo Ngọc", "Tạ Hải Đăng", "Phan Quỳnh Như", "Cao Minh Khang", "Vũ Thanh Trúc", "Trịnh Đức Anh" };
-        var nguoi = new List<TaiKhoan>();
-        for (var i = 0; i < 19; i++)
+        for (var i = 2; i <= 20; i++)
         {
-            var tk = new TaiKhoan { Email = $"nguoi{i + 1:00}@mau20.example", HoTen = ten[i], Loai = i < 8 ? "NhaTuyenDung" : "UngVien" };
+            var q = new TaiKhoan { Email = $"quantri{i:00}@maumoi.example", HoTen = $"Quản trị mẫu {i:00}", VaiTro = "QuanTri", Loai = "QuanTri" };
+            q.MatKhauBam = bam.HashPassword(q, matKhau); db.Add(q);
+        }
+        var nguoi = new List<TaiKhoan>();
+        for (var i = 0; i < 60; i++)
+        {
+            var tk = new TaiKhoan { Email = $"nguoi{i + 1:00}@maumoi.example", HoTen = ten[i % ten.Length] + $" {i + 1:00}", Loai = i < 40 ? "NhaTuyenDung" : "UngVien" };
             tk.MatKhauBam = bam.HashPassword(tk, matKhau); nguoi.Add(tk); db.Add(tk);
         }
         await db.SaveChangesAsync();
-        var tenDn = new[] { "Công nghệ Ánh Dương", "Thương mại Minh An", "Thiết kế Sao Việt", "Giải pháp Hưng Thịnh", "Truyền thông Phương Nam" };
+        var tenDn = new[] { "Công nghệ Ánh Dương", "Thương mại Minh An", "Thiết kế Sao Việt", "Giải pháp Hưng Thịnh", "Truyền thông Phương Nam", "Dịch vụ Đại Việt", "Phần mềm An Khang", "Sáng tạo Bình Minh", "Thương mại Hoàng Gia", "Công nghệ Thiên Long", "Thiết kế Hòa Bình", "Giải pháp Nam Việt" };
         var dns = new List<DoanhNghiep>();
-        for (var i = 0; i < 5; i++)
+        for (var i = 0; i < 12; i++)
         {
-            var dn = new DoanhNghiep { Ten = tenDn[i], MaSoThue = $"MAU20-{i + 1:00}", DiaChi = "TP. Hồ Chí Minh — địa chỉ minh họa",
+            var dn = new DoanhNghiep { Ten = tenDn[i], MaSoThue = $"MAUMOI-{i + 1:00}", DiaChi = "TP. Hồ Chí Minh — địa chỉ minh họa",
                 GioiThieu = "Doanh nghiệp minh họa dùng kiểm thử, không phải thông tin doanh nghiệp thật.",
-                NguoiPhuTrachId = nguoi[i].Id, TrangThai = i < 3 ? "DaDuyet" : "ChoDuyet", DaCapMienPhi = i < 3 };
+                NguoiPhuTrachId = nguoi[i].Id, TrangThai = i < 6 ? "DaDuyet" : i < 9 ? "ChoDuyet" : "BiTuChoi", LyDo = i >= 9 ? "Thông tin đăng ký minh họa chưa đầy đủ, cần bổ sung." : "", DaCapMienPhi = i < 6 };
             db.Add(dn); dns.Add(dn); nguoi[i].DoanhNghiepId = dn.Id;
-            if (i < 3) phien.GhiLuot(dn, qt.Id, dn.Id, "MienPhiLanDau", 3, 0, 0);
+            if (i < 6) phien.GhiLuot(dn, qt.Id, dn.Id, "MienPhiLanDau", 3, 0, 0);
         }
-        for (var i = 5; i < 8; i++) nguoi[i].DoanhNghiepId = dns[i - 5].Id;
+        for (var i = 12; i < 20; i++) nguoi[i].DoanhNghiepId = dns[(i - 12) % 6].Id;
         var nganh = new List<DanhMuc>();
         foreach (var t in new[] { "Công nghệ thông tin", "Kinh doanh", "Thiết kế" })
         {
@@ -52,33 +57,33 @@ public static class TaoBoMauNghiemThu
         try
         {
             var kho = Path.Combine(goc, "kho-tep"); Directory.CreateDirectory(kho);
-            for (var i = 0; i < 3; i++)
+            for (var i = 0; i < 9; i++)
             {
-                var luot = new[] { 1, 5, 10 }[i];
+                var luot = new[] { 1, 5, 10 }[i % 3];
                 var tep = new Tep { ChuSoHuuId = qt.Id, Ten = $"goi-{luot}.png", Loai = "Anh", Mime = "image/png" };
                 tep.DuongDan = Path.Combine(kho, tep.Id + ".png");
                 File.Copy(Path.Combine(goc, "DuLieuMau", "anh", $"goi-{luot}.png"), tep.DuongDan);
                 tepMoi.Add(tep.DuongDan); db.Add(tep);
-                var goi = new GoiLuot { Ten = $"Gói {luot} lượt đăng tin", DanhMucId = dichVu.Id, AnhId = tep.Id, SoLuot = luot, Gia = new[] { 20000m, 90000m, 160000m }[i], MoTa = "Gói minh họa; xác nhận thanh toán ở chế độ trình diễn." };
+                var goi = new GoiLuot { Ten = $"Gói {luot} lượt đăng tin — lựa chọn {i + 1}", DanhMucId = dichVu.Id, AnhId = tep.Id, SoLuot = luot, Gia = new[] { 20000m, 90000m, 160000m }[i % 3], MoTa = "Gói minh họa; xác nhận thanh toán ở chế độ trình diễn." };
                 db.Add(goi); gois.Add(goi);
             }
-            for (var i = 0; i < 5; i++)
+            for (var i = 0; i < 24; i++)
             {
-                var j = i % 3; var g = gois[j]; var dn = dns[j];
-                var ngay = DateTime.UtcNow.AddMonths(i - 4).AddDays(-1);
-                var don = new DonHang { Ma = $"DH-MAU20-{i + 1:00}", DoanhNghiepId = dn.Id, NguoiMuaId = nguoi[j].Id,
-                    KhoaLap = $"mau20-don-{i + 1}", TrangThai = i < 3 ? "DaThanhToan" : "ChoThanhToan",
-                    TongTien = g.Gia, TongLuot = g.SoLuot, TaoLuc = i < 3 ? ngay : DateTime.UtcNow.AddMinutes(-i),
-                    XacNhanLuc = i < 3 ? ngay : null, NguoiXacNhanId = i < 3 ? qt.Id : null };
+                var j = i % 6; var g = gois[i % gois.Count]; var dn = dns[j];
+                var ngay = DateTime.UtcNow.AddMonths(-(i % 6)).AddDays(-1);
+                var don = new DonHang { Ma = $"DH-MAUMOI-{i + 1:00}", DoanhNghiepId = dn.Id, NguoiMuaId = nguoi[j].Id,
+                    KhoaLap = $"maumoi-don-{i + 1}", TrangThai = i < 18 ? "DaThanhToan" : "ChoThanhToan",
+                    TongTien = g.Gia, TongLuot = g.SoLuot, TaoLuc = i < 18 ? ngay : DateTime.UtcNow.AddMinutes(-i),
+                    XacNhanLuc = i < 18 ? ngay : null, NguoiXacNhanId = i < 18 ? qt.Id : null };
                 don.ChiTiet.Add(new ChiTietDon { GoiLuotId = g.Id, TenGoi = g.Ten, SoLuong = 1, SoLuot = g.SoLuot, DonGia = g.Gia });
                 db.Add(don);
-                if (i < 3) phien.GhiLuot(dn, qt.Id, don.Id, "MuaLuot", g.SoLuot, 0, 0);
+                if (i < 18) phien.GhiLuot(dn, qt.Id, don.Id, "MuaLuot", g.SoLuot, 0, 0);
             }
             var tieuDe = new[] { "Lập trình viên Flutter", "Nhân viên kinh doanh", "Chuyên viên thiết kế", "Lập trình viên C# ASP.NET Core" };
-            for (var i = 0; i < 4; i++)
+            for (var i = 0; i < 18; i++)
             {
-                var j = i % 3; var dn = dns[j];
-                var tin = new TinTuyenDung { TieuDe = tieuDe[i], DoanhNghiepId = dn.Id, NguoiTaoId = nguoi[j].Id, NganhId = nganh[j].Id,
+                var j = i % 6; var dn = dns[j];
+                var tin = new TinTuyenDung { TieuDe = tieuDe[i % tieuDe.Length] + $" — vị trí {i + 1}", DoanhNghiepId = dn.Id, NguoiTaoId = nguoi[j].Id, NganhId = nganh[i % 3].Id,
                     DiaDiem = "TP. Hồ Chí Minh", KinhNghiem = "Dưới 1 năm", TrinhDo = "Cao đẳng/Đại học", SoNguoi = 2,
                     LuongMin = 10000000, LuongMax = 18000000, MoTa = "Tin tuyển dụng minh họa cho kiểm thử ứng dụng.",
                     YeuCau = "Có kỹ năng phù hợp với vị trí.", QuyenLoi = "Đào tạo và phát triển kỹ năng.",
@@ -87,10 +92,10 @@ public static class TaoBoMauNghiemThu
                 phien.GhiLuot(dn, qt.Id, tin.Id, "SuDungLuot", 0, -1, 1);
             }
             await db.SaveChangesAsync();
-            PhienLamViec.KiemTra(await db.TaiKhoan.CountAsync() == 20 && await db.DoanhNghiep.CountAsync() == 5 && await db.DonHang.CountAsync() == 5 && await db.Tin.CountAsync() == 4, "Số lượng mẫu không đúng, hủy giao dịch.");
+            PhienLamViec.KiemTra(await db.TaiKhoan.CountAsync() == 80 && await db.DoanhNghiep.CountAsync() == 12 && await db.DonHang.CountAsync() == 24 && await db.Tin.CountAsync() == 18, "Số lượng mẫu không đúng, hủy giao dịch.");
             await tx.CommitAsync();
-            Console.WriteLine("Đã tạo: 20 tài khoản (1 quản trị, 8 nhà tuyển dụng, 11 ứng viên); 3 doanh nghiệp hoạt động, 2 chờ duyệt; 5 đơn (3 đã thanh toán, 2 chờ); 4 tin đang tuyển.");
-            Console.WriteLine("Quản trị: quantri@mau20.example. Thành viên: nguoi01@mau20.example đến nguoi19@mau20.example. Mật khẩu là giá trị bạn vừa nhập.");
+            Console.WriteLine("Đã tạo: 80 tài khoản, chia đều 20 quản trị / 20 ứng viên / 20 nhà tuyển dụng chưa có doanh nghiệp / 20 nhân viên (gồm người phụ trách). 12 doanh nghiệp: 6 đã duyệt, 3 chờ, 3 từ chối. 24 đơn, 18 tin, 9 gói.");
+            Console.WriteLine("Quản trị: quantri@maumoi.example. Thành viên: nguoi01@maumoi.example đến nguoi60@maumoi.example. Mật khẩu là giá trị bạn vừa nhập.");
         }
         catch
         {

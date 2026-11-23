@@ -49,8 +49,6 @@ class ChucNang {
       ]);
       if (kq == null) return;
       d.addAll(kq);
-    } else {
-      if (!await xacNhan(c, 'Xác nhận ${tenNhan(tt).toLowerCase()}?')) return;
     }
     await u.xuLy('$dd/trang-thai', d);
     taiLai();
@@ -283,7 +281,22 @@ class ChucNang {
     );
   }
 
-  Widget gio() => ManDanhSach(
+  Widget gio() => DefaultTabController(
+    length: 2,
+    child: Scaffold(
+      appBar: AppBar(
+        title: const Text('Giỏ hàng'),
+        bottom: const TabBar(
+          tabs: [
+            Tab(text: 'Trong giỏ'),
+            Tab(text: 'Đơn đã đặt'),
+          ],
+        ),
+      ),
+      body: TabBarView(children: [gioTrong(), don()]),
+    ),
+  );
+  Widget gioTrong() => ManDanhSach(
     phanDau: (ds, tai) {
       num goi = 0, luot = 0, tong = 0;
       for (final d in ds) {
@@ -433,6 +446,7 @@ class ChucNang {
     them: null,
     ve: (d, tai) => TheDonMuaLuot(
       ma: d['ma'],
+      tenDoanhNghiep: d['tenDoanhNghiep'] ?? '',
       tongTien: tien(d['tongTien']),
       tongLuot: d['tongLuot'],
       taoLuc: ngay(d['taoLuc']),
@@ -445,7 +459,16 @@ class ChucNang {
               'Xác nhận • TRÌNH DIỄN',
               () => trangThai('don-hang/${d['id']}', 'DaThanhToan', tai),
             ),
-          nut('Hủy đơn', () => trangThai('don-hang/${d['id']}', 'DaHuy', tai)),
+          if (u.quanTri)
+            nut(
+              'Từ chối',
+              () => trangThai('don-hang/${d['id']}', 'TuChoi', tai, lyDo: true),
+            )
+          else
+            nut(
+              'Hủy đơn',
+              () => trangThai('don-hang/${d['id']}', 'DaHuy', tai),
+            ),
         ],
       ],
     ),
@@ -525,36 +548,46 @@ class ChucNang {
     );
   }
 
-  Widget thanhVienCongTy() => ManDanhSach(
+  Future<void> moNhanVienCongTy() async {
+    final dn = await u.danhSach('doanh-nghiep/toi');
+    if (!c.mounted) return;
+    mo(thanhVienCongTy(quanLy: dn['nguoiPhuTrachId'] == u.nguoi?['id']));
+  }
+
+  Widget thanhVienCongTy({bool quanLy = true}) => ManDanhSach(
     ung: u,
     tieuDe: 'Thành viên doanh nghiệp',
     duongDan: 'doanh-nghiep/thanh-vien',
     timKiem: false,
-    them: () async {
-      await moBieuMau(
-        c,
-        u,
-        'Thêm nhà tuyển dụng',
-        const [TruongNhap('email', 'Email tài khoản đã đăng ký')],
-        luu: (d) async {
-          await u.xuLy('doanh-nghiep/thanh-vien', d);
-        },
-      );
-    },
+    them: !quanLy
+        ? null
+        : () async {
+            await moBieuMau(
+              c,
+              u,
+              'Thêm nhà tuyển dụng',
+              const [TruongNhap('email', 'Email tài khoản đã đăng ký')],
+              luu: (d) async {
+                await u.xuLy('doanh-nghiep/thanh-vien', d);
+              },
+            );
+          },
     ve: (d, tai) => TheNoiDung(
       tieuDe: d['hoTen'],
       phu: d['email'],
-      hanhDong: [
-        nut('Gỡ khỏi doanh nghiệp', () async {
-          if (await xacNhan(c, 'Gỡ thành viên khỏi doanh nghiệp?')) {
-            await u.xuLy('doanh-nghiep/thanh-vien', {
-              'email': d['email'],
-              'xoa': true,
-            });
-            tai();
-          }
-        }),
-      ],
+      hanhDong: !quanLy
+          ? []
+          : [
+              nut('Gỡ khỏi doanh nghiệp', () async {
+                if (await xacNhan(c, 'Gỡ thành viên khỏi doanh nghiệp?')) {
+                  await u.xuLy('doanh-nghiep/thanh-vien', {
+                    'email': d['email'],
+                    'xoa': true,
+                  });
+                  tai();
+                }
+              }),
+            ],
     ),
   );
   Widget thanhVien() => ManDanhSach(
@@ -675,7 +708,9 @@ class ChucNang {
       tieuDe: d['tieuDe'],
       phu:
           '${d['tenDoanhNghiep'] ?? 'Nh\u00e0 tuy\u1ec3n d\u1ee5ng'}${d['tenNganh'] == null ? '' : ' \u2022 ${d['tenNganh']}'}\n${d['diaDiem']} \u2022 ${tenNhan(d['hinhThuc'])}\n${_mucLuong(d['luongMin'], d['luongMax'])} \u2022 H\u1ea1n nh\u1eadn: ${ngay(d['hanNhan'])}',
-      trangThai: DateTime.parse(d['hanNhan']).isBefore(DateTime.now())
+      trangThai: u.ungVien && u.tinDaGui.contains(d['id'].toString())
+          ? 'Đã gửi'
+          : DateTime.parse(d['hanNhan']).isBefore(DateTime.now())
           ? 'Hết hạn'
           : d['trangThai'],
       mo: () => thucHien(c, () => chiTietTin(d['id'])),
@@ -822,8 +857,15 @@ class ChucNang {
       khoaNhap: 'tin-${cu?['id'] ?? 'moi'}',
       luu: (d) async {
         final han = DateTime.tryParse(d['hanNhan']);
-        if (han == null) throw Exception('Hạn nhận cần có dạng yyyy-MM-dd.');
-        d['hanNhan'] = han.toUtc().toIso8601String();
+        if (han == null) throw Exception('Vui lòng chọn hạn nhận.');
+        d['hanNhan'] = DateTime(
+          han.year,
+          han.month,
+          han.day,
+          23,
+          59,
+          59,
+        ).toUtc().toIso8601String();
         await u.xuLy(
           'tin-tuyen-dung${cu == null ? '' : '/${cu['id']}'}',
           d,
@@ -844,7 +886,8 @@ class ChucNang {
           ung: u,
           hanhDong: [
             if (u.ungVien)
-              nut('Ứng tuyển', () async {
+              nut(u.tinDaGui.contains(id) ? 'Đã gửi' : 'Ứng tuyển', () async {
+                if (u.tinDaGui.contains(id)) return;
                 final cv = await luaChon('tep');
                 if (cv.isEmpty) {
                   if (!c.mounted) return;
@@ -1043,9 +1086,10 @@ class ChucNang {
       ],
     ),
   );
-  Future<void> chiTietHoSo(String id) async {
+  Future<void> chiTietHoSo(String id, {VoidCallback? taiLai}) async {
     final kq = await u.danhSach('ho-so/$id');
     final d = Map<String, dynamic>.from(kq['hoSo']);
+    final viec = Map<String, dynamic>.from(kq['viecLam'] ?? {});
     final hs = Map<String, dynamic>.from(jsonDecode(d['banHoSoJson']));
     Map<String, dynamic> ct = {};
     try {
@@ -1055,6 +1099,11 @@ class ChucNang {
     await thongTin(
       'Hồ sơ đã nộp',
       {
+        'viecLam':
+            '${viec['tieuDe'] ?? ''}\n${viec['tenDoanhNghiep'] ?? ''}\n${viec['diaDiem'] ?? ''}\n${_mucLuong(viec['luongMin'], viec['luongMax'])}',
+        'moTaViec': viec['moTa'],
+        'yeuCauViec': viec['yeuCau'],
+        'quyenLoiViec': viec['quyenLoi'],
         'hoTen': hs['HoTen'],
         'email': hs['Email'],
         ...ct,
@@ -1071,6 +1120,10 @@ class ChucNang {
             : _phongVan(d['phongVanJson']),
       },
       {
+        'viecLam': 'Việc làm đã nộp CV',
+        'moTaViec': 'Mô tả công việc',
+        'yeuCauViec': 'Yêu cầu công việc',
+        'quyenLoiViec': 'Quyền lợi',
         'hoTen': 'Họ tên khi nộp',
         'email': 'Email',
         'lienHe': 'Liên hệ',
@@ -1084,7 +1137,38 @@ class ChucNang {
         'phongVan': 'Thông tin phỏng vấn',
         'lichSu': 'Lịch sử',
       },
-      hanhDong: [nut('Tải CV đã nộp', () => taiCv(d['cvId']))],
+      hanhDong: [
+        nut('Tải CV đã nộp', () => taiCv(d['cvId'])),
+        if (u.nhaTuyen && d['trangThai'] == 'DaGui')
+          nut('Duyệt', () async {
+            await u.xuLy('ho-so/$id/trang-thai', {
+              'trangThai': 'DangXemXet',
+              'ghiChu': '',
+              'gioPhongVan': null,
+              'hinhThuc': null,
+              'diaDiem': null,
+            });
+            if (c.mounted) Navigator.pop(c);
+            taiLai?.call();
+          }),
+        if (u.nhaTuyen &&
+            ['DaGui', 'DangXemXet', 'MoiPhongVan'].contains(d['trangThai']))
+          nut('Từ chối', () async {
+            final lyDo = await moBieuMau(c, u, 'Từ chối hồ sơ', const [
+              TruongNhap('ghiChu', 'Lý do'),
+            ]);
+            if (lyDo == null) return;
+            await u.xuLy('ho-so/$id/trang-thai', {
+              'trangThai': 'TuChoi',
+              'ghiChu': lyDo['ghiChu'],
+              'gioPhongVan': null,
+              'hinhThuc': null,
+              'diaDiem': null,
+            });
+            if (c.mounted) Navigator.pop(c);
+            taiLai?.call();
+          }),
+      ],
     );
   }
 
@@ -1135,9 +1219,8 @@ class _ManChiTietGoi extends StatelessWidget {
         const SizedBox(height: 18),
         Text(
           goi['ten'],
-          style: Theme.of(
-            c,
-          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+          style: Theme.of(c).textTheme.headlineSmall
+              ?.copyWith(fontWeight: FontWeight.w900),
         ),
         const SizedBox(height: 14),
         Card(
@@ -1173,9 +1256,8 @@ class _ManChiTietGoi extends StatelessWidget {
         const SizedBox(height: 14),
         Text(
           'Giới thiệu gói',
-          style: Theme.of(
-            c,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+          style: Theme.of(c).textTheme.titleMedium
+              ?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 6),
         Text(
@@ -1230,9 +1312,8 @@ class _ManChiTietDon extends StatelessWidget {
                 const SizedBox(height: 10),
                 Text(
                   don['ma'],
-                  style: Theme.of(
-                    c,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+                  style: Theme.of(c).textTheme.titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: 8),
                 NhanTrangThai(don['trangThai']),
@@ -1276,9 +1357,8 @@ class _ManChiTietDon extends StatelessWidget {
               children: [
                 Text(
                   'Gói trong đơn',
-                  style: Theme.of(c).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: Theme.of(c).textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 8),
                 for (final x in (don['chiTiet'] as List)) ...[
@@ -1358,6 +1438,21 @@ class _ThongKeState extends State<_ThongKe> {
     tai();
   }
 
+  Future<void> chonNgay(TextEditingController o) async {
+    final d = await showDatePicker(
+      context: context,
+      initialDate: DateTime.tryParse(o.text) ?? DateTime.now(),
+      firstDate: DateTime(1900),
+      lastDate: DateTime(2200),
+      initialEntryMode: DatePickerEntryMode.calendarOnly,
+      helpText: 'Chọn ngày',
+      cancelText: 'Hủy',
+      confirmText: 'Chọn',
+    );
+    if (d != null && mounted)
+      setState(() => o.text = d.toIso8601String().substring(0, 10));
+  }
+
   void tai() {
     duLieu = widget.u.danhSach(
       'thong-ke?${tu.text.isEmpty ? '' : 'tuNgay=${tu.text}&'}${den.text.isEmpty ? '' : 'denNgay=${den.text}'}',
@@ -1379,11 +1474,15 @@ class _ThongKeState extends State<_ThongKe> {
       children: [
         TextField(
           controller: tu,
+          readOnly: true,
+          onTap: () => chonNgay(tu),
           decoration: const InputDecoration(labelText: 'Từ ngày (yyyy-MM-dd)'),
         ),
         const SizedBox(height: 12),
         TextField(
           controller: den,
+          readOnly: true,
+          onTap: () => chonNgay(den),
           decoration: const InputDecoration(
             labelText: 'Đến trước ngày (yyyy-MM-dd)',
           ),
